@@ -397,14 +397,24 @@ public class DataInitializer implements CommandLineRunner {
                     ? apoderados.get(estudianteIdx % apoderados.size())
                     : null;
 
-                estudianteRepository.save(Estudiante.builder()
+                Estudiante.EstudianteBuilder builder = Estudiante.builder()
                     .nombre(nombre)
                     .apellido(apellidoP + " " + apellidoM)
                     .rut(rutStr)
                     .fechaNacimiento(fnac)
                     .curso(curso)
-                    .apoderado(apoderado)
-                    .build());
+                    .apoderado(apoderado);
+
+                // Datos de muestra de la ficha para los primeros 2 alumnos de cada curso.
+                // foto se deja en null. Sexo alterna Masculino/Femenino.
+                if (i < 2) {
+                    builder.nacionalidad("Chilena")
+                           .sexo(i % 2 == 0 ? "Masculino" : "Femenino")
+                           .comuna("Santiago")
+                           .prevision("Fonasa");
+                }
+
+                estudianteRepository.save(builder.build());
 
                 rutBase++;
                 estudianteIdx++;
@@ -443,8 +453,11 @@ public class DataInitializer implements CommandLineRunner {
         colegioRepository.save(com.example.schedule.model.Colegio.builder()
             .nombre("Colegio De La Salle")
             .region("Región Metropolitana")
+            .provincia("Santiago")
             .comuna("La Reina")
             .direccion("Avenida Ossa 1349")
+            .rbd("12345-6")
+            .decreto("Decreto Exento N° 2960/2007")
             .logo(logoDataUri)
             .build());
         log.info("  → Colegio creado: Colegio De La Salle");
