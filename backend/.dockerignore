@@ -1,0 +1,4 @@
+target/
+.agents/
+*.log
+.git/
