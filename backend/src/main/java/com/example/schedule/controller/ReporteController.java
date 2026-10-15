@@ -1,5 +1,7 @@
 package com.example.schedule.controller;
 
+import com.example.schedule.service.CertificadoService;
+import com.example.schedule.service.FichaAlumnoService;
 import com.example.schedule.service.InformeAlumnoService;
 import com.example.schedule.service.ReporteService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,8 @@ public class ReporteController {
 
     private final ReporteService reporteService;
     private final InformeAlumnoService informeAlumnoService;
+    private final CertificadoService certificadoService;
+    private final FichaAlumnoService fichaAlumnoService;
 
     @GetMapping("/notas/pdf")
     public ResponseEntity<byte[]> reporteNotasPdf(
@@ -48,6 +52,38 @@ public class ReporteController {
 
         String filename = "informe-notas-curso" + cursoId + "-T" + trimestreId
                 + (estudianteId != null ? "-alumno" + estudianteId : "") + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
+
+    @GetMapping("/certificado/pdf")
+    public ResponseEntity<byte[]> certificadoPdf(
+            @RequestParam Long cursoId,
+            @RequestParam(required = false) Integer anio,
+            @RequestParam(required = false) Long estudianteId) {
+
+        byte[] pdf = certificadoService.generarCertificado(cursoId, anio, estudianteId);
+
+        String periodo = anio != null ? String.valueOf(anio) : "actual";
+        String filename = "certificado-estudios-curso" + cursoId + "-" + periodo
+                + (estudianteId != null ? "-alumno" + estudianteId : "") + ".pdf";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(pdf);
+    }
+
+    @GetMapping("/ficha/pdf")
+    public ResponseEntity<byte[]> fichaAlumnoPdf(
+            @RequestParam Long estudianteId) {
+
+        byte[] pdf = fichaAlumnoService.generarFicha(estudianteId);
+
+        String filename = "ficha-alumno-" + estudianteId + ".pdf";
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
