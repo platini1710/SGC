@@ -9,7 +9,6 @@ import com.example.schedule.repository.EstudianteRepository;
 import com.example.schedule.security.NotaAccessChecker;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
-import com.lowagie.text.Font;
 import com.lowagie.text.FontFactory;
 import com.lowagie.text.Image;
 import com.lowagie.text.PageSize;
