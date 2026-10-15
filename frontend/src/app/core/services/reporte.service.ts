@@ -36,4 +36,29 @@ export class ReporteService {
       responseType: 'blob'
     });
   }
+
+  // Descarga el "Certificado Anual de Estudios".
+  // Sin estudianteId -> una página por cada alumno del curso.
+  descargarCertificado(cursoId: number, anio: number | null, estudianteId?: number | null): Observable<Blob> {
+    let params = new HttpParams().set('cursoId', cursoId.toString());
+    if (anio != null) {
+      params = params.set('anio', anio.toString());
+    }
+    if (estudianteId != null) {
+      params = params.set('estudianteId', estudianteId.toString());
+    }
+    return this.http.get(`${this.base}/api/reportes/certificado/pdf`, {
+      params,
+      responseType: 'blob'
+    });
+  }
+
+  // Descarga la "Ficha de Matrícula y Antecedentes del Alumno" (1 página por alumno).
+  descargarFicha(estudianteId: number): Observable<Blob> {
+    const params = new HttpParams().set('estudianteId', estudianteId.toString());
+    return this.http.get(`${this.base}/api/reportes/ficha/pdf`, {
+      params,
+      responseType: 'blob'
+    });
+  }
 }
