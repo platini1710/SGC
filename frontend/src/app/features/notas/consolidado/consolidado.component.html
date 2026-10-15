@@ -1,0 +1,72 @@
+<div>
+  <h2 class="page-title">📊 Consolidado Anual</h2>
+
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="form-group">
+        <label>Curso</label>
+        <select [(ngModel)]="cursoId" (ngModelChange)="onSeleccion()">
+          <option [ngValue]="null">Seleccione curso</option>
+          @for (c of cursos; track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Asignatura</label>
+        <select [(ngModel)]="asignaturaId" (ngModelChange)="onSeleccion()">
+          <option [ngValue]="null">Seleccione asignatura</option>
+          @for (a of asignaturas; track a.id) {
+            <option [ngValue]="a.id">{{ a.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Año</label>
+        <input type="number" [(ngModel)]="anio" (ngModelChange)="onSeleccion()">
+      </div>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+  } @else if (consolidado) {
+    <div class="card">
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th style="text-align:center">T1</th>
+              <th style="text-align:center">T2</th>
+              <th style="text-align:center">T3</th>
+              <th style="text-align:center">NF</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of consolidado.filas; track fila.estudianteId) {
+              <tr>
+                <td>{{ fila.nombreEstudiante }}</td>
+                <td style="text-align:center">{{ fila.promedioT1 != null ? (fila.promedioT1 | number:'1.2-2') : '—' }}</td>
+                <td style="text-align:center">{{ fila.promedioT2 != null ? (fila.promedioT2 | number:'1.2-2') : '—' }}</td>
+                <td style="text-align:center">{{ fila.promedioT3 != null ? (fila.promedioT3 | number:'1.2-2') : '—' }}</td>
+                <td style="text-align:center"
+                    [class.nf-rojo]="fila.notaFinal != null && fila.notaFinal < 4.0"
+                    [class.nf-verde]="fila.notaFinal != null && fila.notaFinal >= 4.0">
+                  {{ fila.notaFinal != null ? (fila.notaFinal | number:'1.2-2') : '—' }}
+                </td>
+              </tr>
+            }
+            @empty {
+              <tr><td colspan="5" style="text-align:center;color:#757575">No hay estudiantes en este curso</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  } @else {
+    <p style="color:#757575">Seleccione curso, asignatura y año para ver el consolidado.</p>
+  }
+</div>

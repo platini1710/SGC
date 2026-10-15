@@ -1,0 +1,125 @@
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 32px 32px;
+  box-shadow: 0 10px 30px rgba(13, 71, 161, 0.15);
+  overflow: hidden;
+}
+
+.login-header {
+  text-align: center;
+  margin: 0 -32px 24px;
+  padding: 28px 24px 20px;
+  background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+  color: #fff;
+
+  .logo {
+    font-size: 48px;
+  }
+
+  .colegio-logo {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 12px 0 4px;
+    letter-spacing: 0.3px;
+    color: #fff;
+  }
+
+  .colegio-info {
+    p {
+      color: rgba(255, 255, 255, 0.85);
+      font-size: 12px;
+      line-height: 1.5;
+      margin: 0;
+    }
+  }
+
+  .login-subtitle {
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+    margin-top: 10px;
+  }
+}
+
+.field {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+
+  label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  input {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 14px;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  }
+}
+
+.field-error {
+  color: #d32f2f;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.alert-error {
+  background: #fdecea;
+  color: #c62828;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.alert-info {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.login-btn {
+  width: 100%;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

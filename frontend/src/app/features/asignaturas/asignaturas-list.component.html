@@ -1,0 +1,70 @@
+<div>
+  <div class="flex items-center justify-between mb-16">
+    <h2 class="page-title" style="margin-bottom:0">📚 Asignaturas</h2>
+    @if (!mostrarForm) {
+      <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nueva Asignatura</button>
+    }
+  </div>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  @if (mostrarForm) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">{{ editandoId ? 'Editar' : 'Nueva' }} Asignatura</h3>
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input formControlName="nombre" type="text" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Código</label>
+            <input formControlName="codigo" type="text" placeholder="MAT">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <input formControlName="descripcion" type="text" placeholder="Descripción">
+        </div>
+        <div class="flex gap-8 mt-8">
+          <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid">Guardar</button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="card">
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Código</th>
+            <th>Descripción</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of asignaturas; track a.id) {
+            <tr>
+              <td>{{ a.nombre }}</td>
+              <td>{{ a.codigo }}</td>
+              <td>{{ a.descripcion }}</td>
+              <td class="acciones">
+                <button class="btn btn-sm" style="background:#1976d2;color:white;margin-right:4px" (click)="abrirForm(a)">Editar</button>
+                <button class="btn btn-danger btn-sm" (click)="eliminar(a.id)">Eliminar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="4" style="text-align:center;color:#757575">No hay asignaturas registradas</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

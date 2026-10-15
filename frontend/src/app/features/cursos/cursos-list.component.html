@@ -1,0 +1,109 @@
+<div>
+  <h2 class="page-title">🏫 Cursos</h2>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  <div class="card">
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Nivel</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of cursos; track c.id) {
+            <tr>
+              <td>{{ c.nombre }}</td>
+              <td>{{ c.nivel }}</td>
+              <td class="acciones">
+                <button class="btn btn-primary btn-sm" (click)="gestionar(c)">Gestionar Asignaturas</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="3" style="text-align:center;color:#757575">No hay cursos registrados</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+
+  @if (cursoSeleccionado) {
+    <div class="card">
+      <div class="flex items-center justify-between mb-16">
+        <h3 style="margin-bottom:0">Asignaturas de {{ cursoSeleccionado.nombre }}</h3>
+        <div class="flex gap-8">
+          @if (!mostrarForm) {
+            <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Asignar</button>
+          }
+          <button class="btn btn-secondary btn-sm" (click)="cerrarPanel()">Cerrar</button>
+        </div>
+      </div>
+
+      @if (mostrarForm) {
+        <form [formGroup]="form" (ngSubmit)="agregarAsignatura()" style="margin-bottom:16px">
+          <div style="display:grid;grid-template-columns:1fr 120px 1fr;gap:12px">
+            <div class="form-group">
+              <label>Asignatura *</label>
+              <select formControlName="asignaturaId">
+                <option [ngValue]="null">Seleccione…</option>
+                @for (a of asignaturas; track a.id) {
+                  <option [ngValue]="a.id">{{ a.nombre }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Horas *</label>
+              <input formControlName="horasSemanales" type="number" min="1">
+            </div>
+            <div class="form-group">
+              <label>Profesor</label>
+              <select formControlName="profesorId">
+                <option [ngValue]="null">Sin asignar</option>
+                @for (p of profesores; track p.id) {
+                  <option [ngValue]="p.id">{{ p.nombre }} {{ p.apellido }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-8 mt-8">
+            <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid">Agregar</button>
+            <button type="button" class="btn btn-secondary btn-sm" (click)="cancelarForm()">Cancelar</button>
+          </div>
+        </form>
+      }
+
+      <table>
+        <thead>
+          <tr>
+            <th>Asignatura</th>
+            <th>Horas Semanales</th>
+            <th>Profesor</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of cursoSeleccionado.asignaturas; track a.asignaturaId) {
+            <tr>
+              <td>{{ a.nombreAsignatura }}</td>
+              <td>{{ a.horasSemanales }}</td>
+              <td>{{ a.nombreProfesor ?? '—' }}</td>
+              <td class="acciones">
+                <button class="btn btn-danger btn-sm" (click)="quitarAsignatura(a.asignaturaId)">Quitar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="4" style="text-align:center;color:#757575">Este curso no tiene asignaturas</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -1,0 +1,110 @@
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <span class="logo">🏫</span>
+    <span class="logo-text">Horarios</span>
+  </div>
+  <ul class="nav-list">
+    @if (esAdmin) {
+      <li>
+        <a routerLink="/horario/curso" routerLinkActive="active" class="nav-link">
+          <span class="nav-icon">🗓️</span>
+          <span>Horario por Curso</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/horario/profesor" routerLinkActive="active" class="nav-link">
+          <span class="nav-icon">👨‍🏫</span>
+          <span>Horario por Profesor</span>
+        </a>
+      </li>
+      <li>
+        <a routerLink="/horario/admin" routerLinkActive="active" class="nav-link">
+          <span class="nav-icon">⚙️</span>
+          <span>Admin Horario</span>
+        </a>
+      </li>
+      <li class="nav-divider"></li>
+
+      <!-- Mantenedores (submenú colapsable) -->
+      <li>
+        <button type="button" class="nav-link nav-group-toggle" (click)="toggleMantenedores()">
+          <span class="nav-icon">🗂️</span>
+          <span>Mantenedores</span>
+          <span class="chevron">{{ mantenedoresAbierto ? '▾' : '▸' }}</span>
+        </button>
+      </li>
+      @if (mantenedoresAbierto) {
+        <li>
+          <a routerLink="/profesores" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">👥</span>
+            <span>Profesores</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/estudiantes" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">🎓</span>
+            <span>Estudiantes</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/apoderados" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">👪</span>
+            <span>Apoderados</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/asignaturas" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">📚</span>
+            <span>Asignaturas</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/cursos" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">🏫</span>
+            <span>Cursos</span>
+          </a>
+        </li>
+        <li>
+          <a routerLink="/parametros" routerLinkActive="active" class="nav-link nav-sublink">
+            <span class="nav-icon">⚙️</span>
+            <span>Parámetros</span>
+          </a>
+        </li>
+      }
+
+      <li>
+        <a routerLink="/trimestres" routerLinkActive="active" class="nav-link">
+          <span class="nav-icon">📅</span>
+          <span>Trimestres</span>
+        </a>
+      </li>
+      <li class="nav-divider"></li>
+    }
+    <li>
+      <a routerLink="/notas" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">📝</span>
+        <span>Notas</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/consolidado" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">📊</span>
+        <span>Consolidado</span>
+      </a>
+    </li>
+    <li>
+      <a routerLink="/reportes" routerLinkActive="active" class="nav-link">
+        <span class="nav-icon">📄</span>
+        <span>Reportes</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <span class="user-icon">👤</span>
+      <span class="user-name">{{ username }}</span>
+    </div>
+    <button type="button" class="logout-btn" (click)="logout()">Cerrar sesión</button>
+  </div>
+</nav>

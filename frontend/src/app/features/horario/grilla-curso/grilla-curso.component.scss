@@ -1,0 +1,22 @@
+.grilla-page { padding: 0; }
+
+.horario-table {
+  th { background: var(--primary); color: white; text-align: center; font-size: 13px; }
+  td { vertical-align: top; }
+}
+
+.bloque-header {
+  background: #f5f5f5;
+  text-align: center;
+  .bloque-num { font-weight: 700; font-size: 13px; color: var(--primary); }
+  .bloque-hora { font-size: 11px; color: var(--text-secondary); }
+}
+
+.celda-td {
+  padding: 4px;
+  min-width: 120px;
+}
+
+.recreo-row td { padding: 6px 8px; }
+
+.vacio { color: #bdbdbd; font-size: 12px; display: block; text-align: center; padding: 8px 0; }

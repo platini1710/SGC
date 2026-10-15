@@ -1,0 +1,93 @@
+<div>
+  <div class="flex items-center justify-between mb-16">
+    <h2 class="page-title" style="margin-bottom:0">👥 Profesores</h2>
+    @if (!mostrarForm) {
+      <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nuevo Profesor</button>
+    }
+  </div>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  @if (mostrarForm) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">{{ editandoId ? 'Editar' : 'Nuevo' }} Profesor</h3>
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input formControlName="nombre" type="text" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input formControlName="apellido" type="text" placeholder="Apellido">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input formControlName="email" type="email" placeholder="correo@colegio.cl">
+          </div>
+          <div class="form-group">
+            <label>RUT</label>
+            <input formControlName="rut" type="text" placeholder="12.345.678-9">
+          </div>
+        </div>
+        @if (especialidades.length > 0) {
+          <div class="form-group">
+            <label>Especialidades</label>
+            <div class="checkbox-list">
+              @for (esp of especialidades; track esp.id) {
+                <label class="checkbox-item">
+                  <input type="checkbox"
+                    [checked]="isEspecialidadSelected(esp.id)"
+                    (change)="toggleEspecialidad(esp.id)">
+                  {{ esp.nombre }}
+                </label>
+              }
+            </div>
+          </div>
+        }
+        <div class="flex gap-8 mt-8">
+          <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid">Guardar</button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="card">
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Email</th>
+            <th>RUT</th>
+            <th>Especialidades</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of profesores; track p.id) {
+            <tr>
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.apellido }}</td>
+              <td>{{ p.email }}</td>
+              <td>{{ p.rut }}</td>
+              <td>{{ p.especialidades?.join(', ') ?? '—' }}</td>
+              <td class="acciones">
+                <button class="btn btn-sm" style="background:#1976d2;color:white;margin-right:4px" (click)="abrirForm(p)">Editar</button>
+                <button class="btn btn-danger btn-sm" (click)="eliminar(p.id)">Eliminar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="6" style="text-align:center;color:#757575">No hay profesores registrados</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

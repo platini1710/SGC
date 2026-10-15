@@ -1,0 +1,128 @@
+<div>
+  <h2 class="page-title">📝 Notas</h2>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      <div class="form-group">
+        <label>Curso</label>
+        <select [(ngModel)]="cursoId" (ngModelChange)="onCursoChange()">
+          <option [ngValue]="null">Seleccione curso</option>
+          @for (c of cursos; track c.id) {
+            <option [ngValue]="c.id">{{ c.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Asignatura</label>
+        <select [(ngModel)]="asignaturaId" (ngModelChange)="onSeleccion()" [disabled]="cursoId == null">
+          <option [ngValue]="null">
+            {{ cursoId == null ? 'Seleccione un curso primero' : 'Seleccione asignatura' }}
+          </option>
+          @for (a of asignaturas; track a.asignaturaId) {
+            <option [ngValue]="a.asignaturaId">{{ a.nombreAsignatura }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Trimestre</label>
+        <select [(ngModel)]="trimestreId" (ngModelChange)="onSeleccion()">
+          <option [ngValue]="null">Seleccione trimestre</option>
+          @for (t of trimestres; track t.id) {
+            <option [ngValue]="t.id">Trimestre {{ t.numero }} ({{ t.anio }})</option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+  } @else if (grilla) {
+    @if (trimestreCerrado) {
+      <div class="alert alert-info">El trimestre está CERRADO. No se pueden ingresar ni modificar notas.</div>
+    }
+    <div class="card">
+      <h3 style="margin-bottom:12px">
+        {{ grilla.nombreCurso }} · {{ grilla.nombreAsignatura }} · Trimestre {{ grilla.numeroTrimestre }}
+      </h3>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              @for (p of posiciones; track p) {
+                <th style="text-align:center">N{{ p }}</th>
+              }
+              <th style="text-align:center">Promedio</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of grilla.filas; track fila.estudianteId; let filaIdx = $index) {
+              <tr>
+                <td>{{ fila.nombreEstudiante }}</td>
+                @for (p of posiciones; track p; let colIdx = $index) {
+                  <td style="text-align:center">
+                    <input
+                      type="text"
+                      inputmode="decimal"
+                      maxlength="4"
+                      placeholder="—"
+                      [id]="inputId(filaIdx, colIdx)"
+                      style="width:60px;text-align:center"
+                      [class.celda-invalida]="invalidas[clave(fila.estudianteId, p)]"
+                      [ngClass]="claseNota(valores[clave(fila.estudianteId, p)])"
+                      [disabled]="trimestreCerrado"
+                      [ngModel]="valores[clave(fila.estudianteId, p)]"
+                      (ngModelChange)="valores[clave(fila.estudianteId, p)] = $event; onChange(fila, p, $event, filaIdx, colIdx)"
+                      (keypress)="onKeypress($event)"
+                      (focus)="onFocus($event)"
+                      (blur)="onBlur(fila, p)">
+                  </td>
+                }
+                <td style="text-align:center">
+                  @if (promedioFila(fila.estudianteId); as prom) {
+                    <span [ngClass]="claseNotaNum(prom)">{{ prom | number:'1.1-1' }}</span>
+                  } @else {
+                    —
+                  }
+                </td>
+              </tr>
+            }
+            @empty {
+              <tr>
+                <td [attr.colspan]="posiciones.length + 2" style="text-align:center;color:#757575">
+                  No hay estudiantes en este curso
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (hayInvalidasVisible) {
+        <div class="alert alert-error" style="margin-top:12px">
+          Hay notas fuera del rango permitido (1,0 a 7,0). Corríjalas antes de grabar.
+        </div>
+      }
+
+      <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:16px">
+        <button
+          class="btn btn-primary"
+          [disabled]="!puedeGrabar"
+          (click)="grabar()">
+          @if (grabando) {
+            <span class="spinner" style="width:14px;height:14px;border-width:2px;vertical-align:middle"></span>
+            Grabando...
+          } @else {
+            💾 Grabar notas
+          }
+        </button>
+      </div>
+    </div>
+  } @else {
+    <p style="color:#757575">Seleccione curso, asignatura y trimestre para ingresar notas.</p>
+  }
+</div>

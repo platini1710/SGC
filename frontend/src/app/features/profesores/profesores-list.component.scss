@@ -1,0 +1,16 @@
+.acciones { white-space: nowrap; }
+
+.checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 400;
+  cursor: pointer;
+  input { width: auto; }
+}

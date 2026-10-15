@@ -1,0 +1,96 @@
+<div>
+  <div class="flex items-center justify-between mb-16">
+    <h2 class="page-title" style="margin-bottom:0">👪 Apoderados</h2>
+    @if (!mostrarForm) {
+      <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nuevo Apoderado</button>
+    }
+  </div>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  @if (mostrarForm) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">{{ editandoId ? 'Editar' : 'Nuevo' }} Apoderado</h3>
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>RUT *</label>
+            <input formControlName="rut" type="text" placeholder="12.345.678-9">
+          </div>
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input formControlName="nombre" type="text" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Apellido Paterno *</label>
+            <input formControlName="apellidoPaterno" type="text" placeholder="Apellido Paterno">
+          </div>
+          <div class="form-group">
+            <label>Región</label>
+            <input formControlName="region" type="text" placeholder="Región">
+          </div>
+          <div class="form-group">
+            <label>Comuna</label>
+            <input formControlName="comuna" type="text" placeholder="Comuna">
+          </div>
+          <div class="form-group">
+            <label>Dirección</label>
+            <input formControlName="direccion" type="text" placeholder="Dirección">
+          </div>
+          <div class="form-group">
+            <label>Teléfono Celular</label>
+            <input formControlName="telefonoCelular" type="text" placeholder="+56912345678">
+          </div>
+          <div class="form-group">
+            <label>Correo</label>
+            <input formControlName="correo" type="email" placeholder="correo@ejemplo.com">
+          </div>
+        </div>
+        <div class="flex gap-8 mt-8">
+          <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid">Guardar</button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="card">
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>RUT</th>
+            <th>Nombre</th>
+            <th>Comuna</th>
+            <th>Celular</th>
+            <th>Correo</th>
+            <th>N° Estudiantes</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of apoderados; track a.id) {
+            <tr>
+              <td>{{ a.rut }}</td>
+              <td>{{ a.nombre }} {{ a.apellidoPaterno }}</td>
+              <td>{{ a.comuna ?? '—' }}</td>
+              <td>{{ a.telefonoCelular ?? '—' }}</td>
+              <td>{{ a.correo }}</td>
+              <td>{{ a.cantidadEstudiantes }}</td>
+              <td class="acciones">
+                <button class="btn btn-sm" style="background:#1976d2;color:white;margin-right:4px" (click)="abrirForm(a)">Editar</button>
+                <button class="btn btn-danger btn-sm" (click)="eliminar(a.id)">Eliminar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="7" style="text-align:center;color:#757575">No hay apoderados registrados</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

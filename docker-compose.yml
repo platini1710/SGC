@@ -1,0 +1,56 @@
+services:
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: schedule-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: scheduledb
+      POSTGRES_USER: ${DB_USERNAME:-usuariolocal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-superpassword123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-usuariolocal} -d scheduledb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Spring Boot Backend ───────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: schedule-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/scheduledb
+      DB_USERNAME: ${DB_USERNAME:-usuariolocal}
+      DB_PASSWORD: ${DB_PASSWORD:-superpassword123}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # El frontend se sirve detrás de Nginx en el mismo origen; CORS no es necesario
+      # entre contenedores, pero lo dejamos abierto al host de desarrollo por si acaso.
+      CORS_ALLOWED_ORIGINS: http://localhost:4201
+    ports:
+      - "8081:8081"
+
+  # ─── Angular Frontend (Nginx) ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: schedule-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "4201:80"
+
+volumes:
+  pgdata:

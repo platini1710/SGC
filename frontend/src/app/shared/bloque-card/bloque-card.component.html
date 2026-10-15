@@ -1,0 +1,11 @@
+<div class="bloque-card" [style.background-color]="color + '33'">
+  <div class="bloque-content">
+    <span class="asignatura-nombre">{{ nombreAsignatura }}</span>
+    @if (nombreSecundario) {
+      <span class="secundario">{{ nombreSecundario }}</span>
+    }
+  </div>
+  @if (editable) {
+    <button class="edit-btn" (click)="editar.emit()" title="Mover bloque">✏️</button>
+  }
+</div>

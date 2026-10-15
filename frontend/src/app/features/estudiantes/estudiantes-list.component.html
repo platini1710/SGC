@@ -1,0 +1,118 @@
+<div>
+  <div class="flex items-center justify-between mb-16">
+    <h2 class="page-title" style="margin-bottom:0">🎓 Estudiantes</h2>
+    @if (!mostrarForm) {
+      <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nuevo Estudiante</button>
+    }
+  </div>
+
+  @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <div class="form-group" style="max-width:280px;margin-bottom:0">
+      <label>Filtrar por curso</label>
+      <select (change)="onFiltroCurso($any($event.target).value)">
+        <option value="">Todos</option>
+        @for (c of cursos; track c.id) {
+          <option [value]="c.id">{{ c.nombre }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (mostrarForm) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">{{ editandoId ? 'Editar' : 'Nuevo' }} Estudiante</h3>
+      <form [formGroup]="form" (ngSubmit)="guardar()">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label>Nombre *</label>
+            <input formControlName="nombre" type="text" placeholder="Nombre">
+          </div>
+          <div class="form-group">
+            <label>Apellido *</label>
+            <input formControlName="apellido" type="text" placeholder="Apellido">
+          </div>
+          <div class="form-group">
+            <label>RUT</label>
+            <input formControlName="rut" type="text" placeholder="12.345.678-9">
+          </div>
+          <div class="form-group">
+            <label>Fecha de Nacimiento</label>
+            <input formControlName="fechaNacimiento" type="date">
+          </div>
+          <div class="form-group">
+            <label>Curso</label>
+            <select formControlName="cursoId">
+              <option [ngValue]="null">Sin asignar</option>
+              @for (c of cursos; track c.id) {
+                <option [ngValue]="c.id">{{ c.nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Apoderado</label>
+            <select formControlName="apoderadoId">
+              <option [ngValue]="null">Sin apoderado</option>
+              @for (a of apoderados; track a.id) {
+                <option [ngValue]="a.id">{{ a.nombre }} {{ a.apellidoPaterno }} ({{ a.rut }})</option>
+              }
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-8 mt-8">
+          <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid">Guardar</button>
+          <button type="button" class="btn btn-secondary btn-sm" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="card">
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>RUT</th>
+            <th>Fecha Nacimiento</th>
+            <th>Curso</th>
+            <th>Apoderado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of pageData?.content ?? []; track e.id) {
+            <tr>
+              <td>{{ e.nombre }}</td>
+              <td>{{ e.apellido }}</td>
+              <td>{{ e.rut }}</td>
+              <td>{{ e.fechaNacimiento ?? '—' }}</td>
+              <td>{{ e.nombreCurso ?? (e.cursoId ? nombreCurso(e.cursoId) : '—') }}</td>
+              <td>{{ e.nombreApoderado ?? '—' }}</td>
+              <td class="acciones">
+                <button class="btn btn-sm" style="background:#1976d2;color:white;margin-right:4px" (click)="abrirForm(e)">Editar</button>
+                <button class="btn btn-danger btn-sm" (click)="eliminar(e.id)">Eliminar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="7" style="text-align:center;color:#757575">No hay estudiantes registrados</td></tr>
+          }
+        </tbody>
+      </table>
+
+      @if (pageData && pageData.totalPages > 0) {
+        <div class="paginacion">
+          <button class="btn btn-secondary btn-sm" (click)="anterior()" [disabled]="pageData.number === 0">Anterior</button>
+          <span>Página {{ pageData.number + 1 }} de {{ pageData.totalPages }}</span>
+          <button class="btn btn-secondary btn-sm" (click)="siguiente()" [disabled]="pageData.number >= pageData.totalPages - 1">Siguiente</button>
+        </div>
+      }
+    }
+  </div>
+</div>

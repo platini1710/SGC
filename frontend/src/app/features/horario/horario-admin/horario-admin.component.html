@@ -1,0 +1,45 @@
+<div>
+  <h2 class="page-title">⚙️ Administración de Horarios</h2>
+
+  <div class="card">
+    <h3 style="margin-bottom:12px">Generar Horario</h3>
+    <p style="color:var(--text-secondary);margin-bottom:12px;font-size:13px">
+      Genera automáticamente el horario para todos los cursos según las asignaturas asignadas.
+    </p>
+    @if (mensajeGenerar) {
+      <div class="alert alert-success">{{ mensajeGenerar }}</div>
+    }
+    @if (errorGenerar) {
+      <div class="alert alert-error">{{ errorGenerar }}</div>
+    }
+    <button class="btn btn-primary" (click)="generarHorario()" [disabled]="generando">
+      @if (generando) { <span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;margin-right:6px"></span> }
+      🔄 Generar Horario Automático
+    </button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:12px">Borrar Horario</h3>
+    <p style="color:var(--text-secondary);margin-bottom:12px;font-size:13px">
+      Elimina todos los horarios generados. Los datos de cursos, profesores y asignaturas no se borran.
+    </p>
+    @if (mensajeBorrar) {
+      <div class="alert alert-success">{{ mensajeBorrar }}</div>
+    }
+    @if (errorBorrar) {
+      <div class="alert alert-error">{{ errorBorrar }}</div>
+    }
+    <button class="btn btn-danger" (click)="borrarHorario()" [disabled]="borrando">
+      @if (borrando) { <span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;margin-right:6px"></span> }
+      🗑️ Borrar Horario
+    </button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:12px">Ver Horarios</h3>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <a routerLink="/horario/curso" class="btn btn-primary">🗓️ Horario por Curso</a>
+      <a routerLink="/horario/profesor" class="btn btn-secondary">👨‍🏫 Horario por Profesor</a>
+    </div>
+  </div>
+</div>

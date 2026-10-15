@@ -1,0 +1,17 @@
+:host { display: block; }
+
+.celda-invalida {
+  border: 2px solid #c62828 !important;
+  background: #ffebee;
+}
+
+/* Color por valor de nota */
+.nota-roja {
+  color: #c62828 !important;
+  font-weight: 700;
+}
+
+.nota-azul {
+  color: #1565c0 !important;
+  font-weight: 700;
+}

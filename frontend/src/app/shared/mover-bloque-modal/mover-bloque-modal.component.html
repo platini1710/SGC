@@ -1,0 +1,48 @@
+<div class="modal-overlay" (click)="cerrar.emit()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Mover Bloque de Horario</h3>
+      <button class="close-btn" (click)="cerrar.emit()">✕</button>
+    </div>
+
+    @if (errorMsg) {
+      <div class="alert-error modal-alert">{{ errorMsg }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="guardar()">
+      <div class="form-group">
+        <label for="diaSemana">Día de la Semana</label>
+        <select id="diaSemana" formControlName="diaSemana">
+          @for (dia of dias; track dia.value) {
+            <option [value]="dia.value">{{ dia.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="bloqueId">Bloque</label>
+        <select id="bloqueId" formControlName="bloqueId">
+          @for (bloque of bloques; track bloque.value) {
+            <option [value]="bloque.value">{{ bloque.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="profesorId">Profesor</label>
+        <select id="profesorId" formControlName="profesorId">
+          @for (prof of profesores; track prof.id) {
+            <option [value]="prof.id">{{ prof.nombre }} {{ prof.apellido }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="cerrar.emit()">Cancelar</button>
+        <button type="submit" class="btn btn-primary btn-sm" [disabled]="form.invalid || guardando">
+          @if (guardando) { <span class="spinner"></span> } @else { Guardar }
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

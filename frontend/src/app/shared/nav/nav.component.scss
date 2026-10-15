@@ -1,0 +1,112 @@
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: #1a2236;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+
+  .logo { font-size: 22px; }
+  .logo-text { font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+}
+
+.nav-list {
+  list-style: none;
+  padding: 12px 0;
+  flex: 1;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 400;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background: rgba(255,255,255,0.07);
+    color: #ffffff;
+  }
+
+  &.active {
+    background: rgba(25,118,210,0.25);
+    color: #64b5f6;
+    border-left-color: #64b5f6;
+    font-weight: 500;
+  }
+
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+}
+
+.nav-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 8px 16px;
+}
+
+/* Botón del grupo "Mantenedores" */
+.nav-group-toggle {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+
+  .chevron {
+    margin-left: auto;
+    font-size: 11px;
+    opacity: 0.8;
+  }
+}
+
+/* Sub-ítems del grupo, con sangría */
+.nav-sublink {
+  padding-left: 32px;
+  font-size: 12.5px;
+  background: rgba(0,0,0,0.15);
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .user-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+
+    .user-name { font-weight: 500; word-break: break-all; }
+  }
+
+  .logout-btn {
+    padding: 8px 12px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    background: transparent;
+    color: #ffffff;
+    font-size: 13px;
+    transition: background 0.15s;
+
+    &:hover { background: rgba(255,255,255,0.1); }
+  }
+}

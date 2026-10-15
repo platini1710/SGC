@@ -1,0 +1,13 @@
+.app-shell {
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;        /* permite que el contenido no desborde el flex */
+  padding: 24px;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
