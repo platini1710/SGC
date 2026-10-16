@@ -8,11 +8,14 @@ import com.example.schedule.dto.PromocionResultadoResponse;
 import com.example.schedule.exception.SchedulingException;
 import com.example.schedule.model.Curso;
 import com.example.schedule.model.EstadoMatricula;
+import com.example.schedule.model.EstadoTrimestre;
 import com.example.schedule.model.Estudiante;
 import com.example.schedule.model.Matricula;
+import com.example.schedule.model.Trimestre;
 import com.example.schedule.repository.CursoRepository;
 import com.example.schedule.repository.EstudianteRepository;
 import com.example.schedule.repository.MatriculaRepository;
+import com.example.schedule.repository.TrimestreRepository;
 import com.example.schedule.security.AuditoriaHelper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -47,6 +51,8 @@ class MatriculaServiceTest {
     private AnioEscolarService anioEscolarService;
     @Mock
     private TrimestreService trimestreService;
+    @Mock
+    private TrimestreRepository trimestreRepository;
     @Mock
     private AuditoriaHelper auditoriaHelper;
 
@@ -76,10 +82,24 @@ class MatriculaServiceTest {
                 .build();
     }
 
+    private List<Trimestre> tresTrimestres(int anio, EstadoTrimestre estado) {
+        return List.of(
+                Trimestre.builder().id((long) (anio * 10 + 1)).numero(1).anio(anio).estado(estado).build(),
+                Trimestre.builder().id((long) (anio * 10 + 2)).numero(2).anio(anio).estado(estado).build(),
+                Trimestre.builder().id((long) (anio * 10 + 3)).numero(3).anio(anio).estado(estado).build());
+    }
+
+    // Stub: el año origen tiene sus tres trimestres CERRADO (camino feliz de la RULE 2).
+    private void stubOrigenCerrado(int anio) {
+        lenient().when(trimestreRepository.findByAnioOrderByNumeroAsc(anio))
+                .thenReturn(tresTrimestres(anio, EstadoTrimestre.CERRADO));
+    }
+
     // ─── previewPromocion ──────────────────────────────────────────────────
 
     @Test
     void preview_promueveAlNivelSiguiente_sinEscribir() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(10L);
         Curso c3 = curso(3L, 3);
         Curso c4 = curso(4L, 4);
@@ -102,6 +122,7 @@ class MatriculaServiceTest {
 
     @Test
     void preview_nivelMaximoEgresa() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(20L);
         Curso c8 = curso(8L, 8);
         when(cursoRepository.findAllByOrderByNivelAsc())
@@ -120,6 +141,7 @@ class MatriculaServiceTest {
 
     @Test
     void preview_sinCursoDestino_marcaIncidencia() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(30L);
         Curso c3 = curso(3L, 3);
         // nivelMax = 8 pero no existe curso de nivel 4
@@ -147,6 +169,7 @@ class MatriculaServiceTest {
 
     @Test
     void confirmar_promoverRepitenteExcluirEgresa_cuentaYCreaTrimestres() {
+        stubOrigenCerrado(2025);
         Estudiante ePro = estudiante(10L);
         Estudiante eRep = estudiante(11L);
         Estudiante eExc = estudiante(12L);
@@ -194,6 +217,7 @@ class MatriculaServiceTest {
 
     @Test
     void confirmar_upsertPreexistente_actualizaSin409() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(10L);
         Curso c3 = curso(3L, 3);
         Curso c4 = curso(4L, 4);
@@ -227,6 +251,7 @@ class MatriculaServiceTest {
 
     @Test
     void confirmar_accionInvalida_lanza422YNoEscribe() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(10L);
         Curso c3 = curso(3L, 3);
         lenient().when(matriculaRepository.findByEstudianteIdAndAnio(10L, 2025))
@@ -245,6 +270,7 @@ class MatriculaServiceTest {
 
     @Test
     void confirmar_promoverSinCursoDestino_lanza422() {
+        stubOrigenCerrado(2025);
         Estudiante e = estudiante(10L);
         Curso c3 = curso(3L, 3);
         when(matriculaRepository.findByEstudianteIdAndAnio(10L, 2025))
@@ -259,5 +285,49 @@ class MatriculaServiceTest {
 
         assertThrows(SchedulingException.class, () -> matriculaService.confirmarPromocion(req));
         verify(matriculaRepository, never()).save(any());
+    }
+
+    // ─── RULE 2: promoción exige los tres trimestres del año origen CERRADO ──
+
+    @Test
+    void preview_trimestreOrigenAbierto_lanza422() {
+        List<Trimestre> conUnoAbierto = List.of(
+                Trimestre.builder().id(1L).numero(1).anio(2025).estado(EstadoTrimestre.CERRADO).build(),
+                Trimestre.builder().id(2L).numero(2).anio(2025).estado(EstadoTrimestre.ABIERTO).build(),
+                Trimestre.builder().id(3L).numero(3).anio(2025).estado(EstadoTrimestre.CERRADO).build());
+        when(trimestreRepository.findByAnioOrderByNumeroAsc(2025)).thenReturn(conUnoAbierto);
+
+        assertThrows(SchedulingException.class,
+                () -> matriculaService.previewPromocion(2025, 2026));
+    }
+
+    @Test
+    void preview_menosDeTresTrimestresOrigen_lanza422() {
+        List<Trimestre> incompletos = List.of(
+                Trimestre.builder().id(1L).numero(1).anio(2025).estado(EstadoTrimestre.CERRADO).build(),
+                Trimestre.builder().id(2L).numero(2).anio(2025).estado(EstadoTrimestre.CERRADO).build());
+        when(trimestreRepository.findByAnioOrderByNumeroAsc(2025)).thenReturn(incompletos);
+
+        assertThrows(SchedulingException.class,
+                () -> matriculaService.previewPromocion(2025, 2026));
+    }
+
+    @Test
+    void confirmar_trimestreOrigenAbierto_lanza422YNoEscribe() {
+        List<Trimestre> conUnoAbierto = List.of(
+                Trimestre.builder().id(1L).numero(1).anio(2025).estado(EstadoTrimestre.CERRADO).build(),
+                Trimestre.builder().id(2L).numero(2).anio(2025).estado(EstadoTrimestre.ABIERTO).build(),
+                Trimestre.builder().id(3L).numero(3).anio(2025).estado(EstadoTrimestre.CERRADO).build());
+        when(trimestreRepository.findByAnioOrderByNumeroAsc(2025)).thenReturn(conUnoAbierto);
+
+        PromocionConfirmRequest req = PromocionConfirmRequest.builder()
+                .anioOrigen(2025).anioDestino(2026)
+                .decisiones(List.of(
+                        PromocionDecisionDTO.builder().estudianteId(10L).accion("PROMOVER").cursoDestinoId(4L).build()))
+                .build();
+
+        assertThrows(SchedulingException.class, () -> matriculaService.confirmarPromocion(req));
+        verify(matriculaRepository, never()).save(any());
+        verify(trimestreService, never()).crearTrimestresDeAnio(anyInt());
     }
 }

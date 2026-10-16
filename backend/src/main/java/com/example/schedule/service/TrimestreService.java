@@ -44,21 +44,23 @@ public class TrimestreService {
         return findByAnio(anio);
     }
 
-    // Solo puede haber un trimestre abierto a la vez por año: al abrir uno,
-    // los demás del mismo año se cierran automáticamente.
+    // Solo puede haber un trimestre abierto a la vez en todo el sistema (en cualquier año):
+    // al abrir uno, cualquier otro trimestre ABIERTO de cualquier año se cierra automáticamente.
+    // Invariante: tras abrir(x), consultar los trimestres ABIERTO devuelve exactamente uno (x).
     @org.springframework.transaction.annotation.Transactional
     public TrimestreResponse abrir(Long id) {
         Trimestre trimestre = getById(id);
-        List<Trimestre> delAnio = trimestreRepository.findByAnioOrderByNumeroAsc(trimestre.getAnio());
-        for (Trimestre t : delAnio) {
-            EstadoTrimestre nuevo = t.getId().equals(id) ? EstadoTrimestre.ABIERTO : EstadoTrimestre.CERRADO;
-            if (t.getEstado() != nuevo) {
-                t.setEstado(nuevo);
-                trimestreRepository.save(t);
+        for (Trimestre abierto : trimestreRepository.findByEstado(EstadoTrimestre.ABIERTO)) {
+            if (!abierto.getId().equals(id)) {
+                abierto.setEstado(EstadoTrimestre.CERRADO);
+                trimestreRepository.save(abierto);
             }
         }
-        trimestre.setEstado(EstadoTrimestre.ABIERTO);
-        return toResponse(trimestreRepository.save(trimestre));
+        if (trimestre.getEstado() != EstadoTrimestre.ABIERTO) {
+            trimestre.setEstado(EstadoTrimestre.ABIERTO);
+            trimestre = trimestreRepository.save(trimestre);
+        }
+        return toResponse(trimestre);
     }
 
     public TrimestreResponse cerrar(Long id) {

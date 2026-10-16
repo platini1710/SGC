@@ -10,11 +10,14 @@ import com.example.schedule.exception.SchedulingException;
 import com.example.schedule.model.AccionPromocion;
 import com.example.schedule.model.Curso;
 import com.example.schedule.model.EstadoMatricula;
+import com.example.schedule.model.EstadoTrimestre;
 import com.example.schedule.model.Estudiante;
 import com.example.schedule.model.Matricula;
+import com.example.schedule.model.Trimestre;
 import com.example.schedule.repository.CursoRepository;
 import com.example.schedule.repository.EstudianteRepository;
 import com.example.schedule.repository.MatriculaRepository;
+import com.example.schedule.repository.TrimestreRepository;
 import com.example.schedule.security.AuditoriaHelper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ public class MatriculaService {
     private final EstudianteRepository estudianteRepository;
     private final AnioEscolarService anioEscolarService;
     private final TrimestreService trimestreService;
+    private final TrimestreRepository trimestreRepository;
     private final AuditoriaHelper auditoriaHelper;
 
     /**
@@ -42,6 +46,7 @@ public class MatriculaService {
      */
     public PromocionPreviewResponse previewPromocion(Integer anioOrigen, Integer anioDestino) {
         validarAnios(anioOrigen, anioDestino);
+        validarTrimestresCerrados(anioOrigen);
 
         int nivelMax = cursoRepository.findAllByOrderByNivelAsc().stream()
                 .filter(c -> c.getNivel() != null)
@@ -111,6 +116,7 @@ public class MatriculaService {
         Integer anioOrigen = req.getAnioOrigen();
         Integer anioDestino = req.getAnioDestino();
         validarAnios(anioOrigen, anioDestino);
+        validarTrimestresCerrados(anioOrigen);
 
         // Deja listos los trimestres CERRADO del año destino.
         trimestreService.crearTrimestresDeAnio(anioDestino);
@@ -235,6 +241,17 @@ public class MatriculaService {
         anioEscolarService.validarRango(anioDestino);
         if (anioDestino.equals(anioOrigen)) {
             throw new SchedulingException("El año destino debe ser distinto del año origen.");
+        }
+    }
+
+    // Para promocionar, el año origen debe tener sus tres trimestres creados y todos en estado CERRADO.
+    private void validarTrimestresCerrados(Integer anioOrigen) {
+        List<Trimestre> trimestres = trimestreRepository.findByAnioOrderByNumeroAsc(anioOrigen);
+        boolean todosCerrados = trimestres.size() == 3
+                && trimestres.stream().allMatch(t -> t.getEstado() == EstadoTrimestre.CERRADO);
+        if (!todosCerrados) {
+            throw new SchedulingException("No se puede promocionar: los tres trimestres del año "
+                    + anioOrigen + " deben existir y estar cerrados.");
         }
     }
 
