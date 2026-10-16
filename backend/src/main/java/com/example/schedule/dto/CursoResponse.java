@@ -12,4 +12,6 @@ public class CursoResponse {
     private String nombre;
     private Integer nivel;
     private String profesorJefe;
+    private Long planEstudioId;
+    private String nombrePlanEstudio;
 }

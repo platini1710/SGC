@@ -29,6 +29,10 @@ public class Curso {
     @JoinColumn(name = "profesor_jefe_id")
     private Profesor profesorJefe;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plan_estudio_id")
+    private PlanEstudio planEstudio;
+
     @OneToMany(mappedBy = "curso", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<CursoAsignatura> cursoAsignaturas = new ArrayList<>();

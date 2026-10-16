@@ -15,5 +15,7 @@ public class CursoDetalleResponse {
     private Integer nivel;
     private Long profesorJefeId;
     private String nombreProfesorJefe;
+    private Long planEstudioId;
+    private String nombrePlanEstudio;
     private List<CursoAsignaturaResponse> asignaturas;
 }

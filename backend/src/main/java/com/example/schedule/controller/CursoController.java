@@ -52,6 +52,21 @@ public class CursoController {
         return cursoService.asignarProfesorJefe(id, body.get("profesorId"));
     }
 
+    // Asigna o quita el plan de estudio del curso. body: { "planEstudioId": 3 } o { "planEstudioId": null }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/plan-estudio")
+    public CursoResponse asignarPlanEstudio(@PathVariable Long id,
+                                            @RequestBody java.util.Map<String, Long> body) {
+        return cursoService.asignarPlanEstudio(id, body.get("planEstudioId"));
+    }
+
+    // Lista las asignaturas del plan del curso (malla) para poblar el combo del mantenedor.
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{id}/asignaturas-disponibles")
+    public List<AsignaturaResponse> asignaturasDisponibles(@PathVariable Long id) {
+        return cursoService.asignaturasDisponibles(id);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/{id}/asignaturas")
     public ResponseEntity<CursoAsignaturaResponse> asignarAsignatura(

@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface CursoRepository extends JpaRepository<Curso, Long> {
     List<Curso> findAllByOrderByNivelAsc();
     Optional<Curso> findByNivel(Integer nivel);
+    boolean existsByPlanEstudioId(Long id);
 }

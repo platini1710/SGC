@@ -2,10 +2,12 @@ package com.example.schedule.service;
 
 import com.example.schedule.dto.*;
 import com.example.schedule.exception.ResourceNotFoundException;
+import com.example.schedule.exception.SchedulingException;
 import com.example.schedule.model.*;
 import com.example.schedule.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
@@ -21,13 +23,16 @@ public class CursoService {
     private final CursoAsignaturaRepository cursoAsignaturaRepository;
     private final HorarioRepository horarioRepository;
     private final BloqueHorarioRepository bloqueHorarioRepository;
+    private final PlanEstudioRepository planEstudioRepository;
 
+    @Transactional(readOnly = true)
     public List<CursoResponse> findAll() {
         return cursoRepository.findAllByOrderByNivelAsc().stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public CursoDetalleResponse findByIdConDetalle(Long id) {
         Curso curso = getById(id);
         List<CursoAsignaturaResponse> asignaturas = cursoAsignaturaRepository.findByCursoId(id).stream()
@@ -39,17 +44,26 @@ public class CursoService {
             profesorJefeId = curso.getProfesorJefe().getId();
             nombreProfesorJefe = curso.getProfesorJefe().getNombre() + " " + curso.getProfesorJefe().getApellido();
         }
+        Long planEstudioId = null;
+        String nombrePlanEstudio = null;
+        if (curso.getPlanEstudio() != null) {
+            planEstudioId = curso.getPlanEstudio().getId();
+            nombrePlanEstudio = curso.getPlanEstudio().getNombre();
+        }
         return CursoDetalleResponse.builder()
                 .id(curso.getId())
                 .nombre(curso.getNombre())
                 .nivel(curso.getNivel())
                 .profesorJefeId(profesorJefeId)
                 .nombreProfesorJefe(nombreProfesorJefe)
+                .planEstudioId(planEstudioId)
+                .nombrePlanEstudio(nombrePlanEstudio)
                 .asignaturas(asignaturas)
                 .build();
     }
 
     // Asigna (o quita, si profesorId es null) el profesor jefe del curso.
+    @Transactional
     public CursoResponse asignarProfesorJefe(Long cursoId, Long profesorId) {
         Curso curso = getById(cursoId);
         if (profesorId == null) {
@@ -62,10 +76,25 @@ public class CursoService {
         return toResponse(cursoRepository.save(curso));
     }
 
+    @Transactional
     public CursoAsignaturaResponse asignarAsignatura(Long cursoId, CursoAsignaturaRequest request) {
         Curso curso = getById(cursoId);
         Asignatura asignatura = asignaturaRepository.findById(request.getAsignaturaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Asignatura no encontrada con id: " + request.getAsignaturaId()));
+
+        PlanEstudio plan = curso.getPlanEstudio();
+        if (plan == null) {
+            throw new SchedulingException(
+                    "El curso no tiene un plan de estudio asignado. Asigne primero un plan al curso.");
+        }
+        boolean enPlan = planEstudioRepository.findByIdFetchAsignaturas(plan.getId())
+                .map(p -> p.getAsignaturas().stream().anyMatch(a -> a.getId().equals(asignatura.getId())))
+                .orElse(false);
+        if (!enPlan) {
+            throw new SchedulingException(
+                    "La asignatura '" + asignatura.getNombre() + "' no pertenece al plan de estudio '"
+                    + plan.getNombre() + "' del curso. Solo puede asignar profesores a asignaturas del plan.");
+        }
 
         Profesor profesor = null;
         if (request.getProfesorId() != null) {
@@ -89,6 +118,40 @@ public class CursoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Asignatura " + asignaturaId + " no asignada al curso " + cursoId));
         cursoAsignaturaRepository.delete(cursoAsignatura);
+    }
+
+    // Asigna (o quita, si planId es null) el plan de estudio del curso.
+    @Transactional
+    public CursoResponse asignarPlanEstudio(Long cursoId, Long planId) {
+        Curso curso = getById(cursoId);
+        if (planId == null) {
+            curso.setPlanEstudio(null);
+        } else {
+            PlanEstudio plan = planEstudioRepository.findById(planId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Plan de estudio no encontrado con id: " + planId));
+            curso.setPlanEstudio(plan);
+        }
+        return toResponse(cursoRepository.save(curso));
+    }
+
+    // Lista las asignaturas del plan del curso (malla). Vacío si el curso no tiene plan.
+    @Transactional
+    public List<AsignaturaResponse> asignaturasDisponibles(Long cursoId) {
+        Curso curso = getById(cursoId);
+        PlanEstudio plan = curso.getPlanEstudio();
+        if (plan == null) {
+            return List.of();
+        }
+        return planEstudioRepository.findByIdFetchAsignaturas(plan.getId())
+                .map(p -> p.getAsignaturas().stream()
+                        .map(a -> AsignaturaResponse.builder()
+                                .id(a.getId())
+                                .nombre(a.getNombre())
+                                .codigo(a.getCodigo())
+                                .descripcion(a.getDescripcion())
+                                .build())
+                        .toList())
+                .orElseGet(List::of);
     }
 
     public GrillaHorarioResponse getHorario(Long cursoId) {
@@ -137,11 +200,15 @@ public class CursoService {
         if (c.getProfesorJefe() != null) {
             profesorJefe = c.getProfesorJefe().getNombre() + " " + c.getProfesorJefe().getApellido();
         }
+        Long planId = c.getPlanEstudio() != null ? c.getPlanEstudio().getId() : null;
+        String planNombre = c.getPlanEstudio() != null ? c.getPlanEstudio().getNombre() : null;
         return CursoResponse.builder()
                 .id(c.getId())
                 .nombre(c.getNombre())
                 .nivel(c.getNivel())
                 .profesorJefe(profesorJefe)
+                .planEstudioId(planId)
+                .nombrePlanEstudio(planNombre)
                 .build();
     }
 

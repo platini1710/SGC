@@ -25,6 +25,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ProfesorRepository         profesorRepository;
     private final AsignaturaRepository       asignaturaRepository;
     private final CursoAsignaturaRepository  cursoAsignaturaRepository;
+    private final PlanEstudioRepository      planEstudioRepository;
     private final EstudianteRepository       estudianteRepository;
     private final ApoderadoRepository        apoderadoRepository;
     private final TrimestreRepository        trimestreRepository;
@@ -45,6 +46,7 @@ public class DataInitializer implements CommandLineRunner {
         initEspecialidades();
         initProfesores();
         initAsignaturas();
+        initPlanesEstudio();
         initCursoAsignaturas();
         initApoderados();
         initEstudiantes();
@@ -223,7 +225,8 @@ public class DataInitializer implements CommandLineRunner {
             {"Orientación",                                  "ORI", "Desarrollo personal, social y afectivo"},
             {"Inglés",                                       "ING", "Lengua extranjera nivel básico"},
             {"Tecnología",                                   "TEC", "Informática y habilidades digitales"},
-            {"Religión",                                     "REL", "Formación en valores y ética"}
+            {"Religión",                                     "REL", "Formación en valores y ética"},
+            {"Lengua y Literatura",                          "LENLIT", "Lengua y Literatura (7° y 8° básico)"}
         };
 
         for (String[] d : datos) {
@@ -233,7 +236,68 @@ public class DataInitializer implements CommandLineRunner {
                 .descripcion(d[2])
                 .build());
         }
-        log.info("  → 10 asignaturas creadas");
+        log.info("  → 12 asignaturas creadas");
+    }
+
+    // ─── Planes de Estudio (malla curricular por bloque de niveles) ──────────
+
+    private void initPlanesEstudio() {
+        if (planEstudioRepository.count() > 0) return;
+
+        List<Asignatura> asignaturas = asignaturaRepository.findAll();
+        Asignatura len    = findA(asignaturas, "Lenguaje y Comunicación");
+        Asignatura lenLit = findA(asignaturas, "Lengua y Literatura");
+        Asignatura mat    = findA(asignaturas, "Matemática");
+        Asignatura cn     = findA(asignaturas, "Ciencias Naturales");
+        Asignatura his    = findA(asignaturas, "Historia, Geografía y Ciencias Sociales");
+        Asignatura ef     = findA(asignaturas, "Educación Física y Salud");
+        Asignatura art    = findA(asignaturas, "Artes Visuales");
+        Asignatura mus    = findA(asignaturas, "Música");
+        Asignatura ori    = findA(asignaturas, "Orientación");
+        Asignatura ing    = findA(asignaturas, "Inglés");
+        Asignatura tec    = findA(asignaturas, "Tecnología");
+
+        // Plan 1° a 4° (decreto 439): 9 asignaturas (sin Inglés)
+        PlanEstudio plan1 = planEstudioRepository.save(PlanEstudio.builder()
+            .nombre("Plan de Estudio 1° a 4° Básico")
+            .descripcion("Plan de Estudio de 1° a 4° Año de Educación Básica")
+            .decreto("439")
+            .nivelDesde(1)
+            .nivelHasta(4)
+            .activo(true)
+            .asignaturas(new java.util.ArrayList<>(List.of(len, mat, cn, his, art, mus, ef, tec, ori)))
+            .build());
+
+        // Plan 5° a 6° (decreto 439): 10 asignaturas (+ Inglés)
+        PlanEstudio plan2 = planEstudioRepository.save(PlanEstudio.builder()
+            .nombre("Plan de Estudio 5° a 6° Básico")
+            .descripcion("Plan de Estudio de 5° y 6° Año de Educación Básica")
+            .decreto("439")
+            .nivelDesde(5)
+            .nivelHasta(6)
+            .activo(true)
+            .asignaturas(new java.util.ArrayList<>(List.of(len, mat, cn, his, art, mus, ef, tec, ori, ing)))
+            .build());
+
+        // Plan 7° a 8° (decreto 628): 10 asignaturas (usa Lengua y Literatura, no Lenguaje)
+        PlanEstudio plan3 = planEstudioRepository.save(PlanEstudio.builder()
+            .nombre("Plan de Estudio 7° a 8° Básico")
+            .descripcion("Plan de Estudio de 7° y 8° Año de Educación Básica")
+            .decreto("628")
+            .nivelDesde(7)
+            .nivelHasta(8)
+            .activo(true)
+            .asignaturas(new java.util.ArrayList<>(List.of(lenLit, ing, mat, cn, his, tec, art, mus, ef, ori)))
+            .build());
+
+        // Enlazar cada curso a su plan por nivel.
+        for (Curso curso : cursoRepository.findAllByOrderByNivelAsc()) {
+            int nivel = curso.getNivel();
+            PlanEstudio plan = (nivel <= 4) ? plan1 : (nivel <= 6) ? plan2 : plan3;
+            curso.setPlanEstudio(plan);
+            cursoRepository.save(curso);
+        }
+        log.info("  → 3 planes de estudio creados y enlazados a los cursos");
     }
 
     // ─── Curso-Asignaturas (qué dicta cada profesor en cada curso) ────────────
@@ -255,7 +319,7 @@ public class DataInitializer implements CommandLineRunner {
         Asignatura ori  = findA(asignaturas, "Orientación");
         Asignatura ing  = findA(asignaturas, "Inglés");
         Asignatura tec  = findA(asignaturas, "Tecnología");
-        Asignatura rel  = findA(asignaturas, "Religión");
+        Asignatura lenLit = findA(asignaturas, "Lengua y Literatura");
 
         Profesor garcia   = findP(profesores, "García");     // Matemáticas
         Profesor lopez    = findP(profesores, "López");      // Lenguaje
@@ -286,10 +350,8 @@ public class DataInitializer implements CommandLineRunner {
             int horasArt = 2;   // Artes Visuales
             int horasMus = (nivel >= 5) ? 1 : 2;   // Música
             int horasOri = 1;   // Orientación
-            int horasIng = (nivel >= 3) ? 3 : 2;   // Inglés (desde 3° con más horas)
-            int horasTec = 1;   // Tecnología
-            int horasRel = 1;   // Religión
-            // Totales: 1°-2° = 29h | 3°-4° = 30h | 5°-8° = 30h ≤ 30 ✓
+            int horasIng = (nivel >= 5) ? 3 : 2;   // Inglés (solo desde 5°, en el plan)
+            int horasTec = 1;   // Tecnología (en las tres mallas, 1°-8°)
 
             // Reparto equilibrado: ningún profesor debe superar 30 horas/semana.
             // Hay 2 profesores de Matemáticas (garcía, martínez, núñez), 2 de Lenguaje
@@ -312,8 +374,12 @@ public class DataInitializer implements CommandLineRunner {
             // Tecnología: martínez cursos impares, pinto cursos pares
             Profesor profTec = (nivel % 2 == 1) ? martinez : pinto;
 
-            // Set base del currículum (8 asignaturas obligatorias para todos los cursos)
-            save(curso, len,  horasLen, profLen);
+            // Lenguaje: 7°-8° usan "Lengua y Literatura" (está en su plan); 1°-6° usan "Lenguaje y Comunicación".
+            Asignatura asigLenguaje = (nivel >= 7) ? lenLit : len;
+
+            // Set base del currículum (obligatorias para todos los cursos 1°-8°).
+            // Tecnología está en las tres mallas, así que es parte del set base.
+            save(curso, asigLenguaje, horasLen, profLen);
             save(curso, mat,  horasMat, profMat);
             save(curso, cn,   horasCn,  profCn);
             save(curso, his,  horasHis, profHis);
@@ -321,13 +387,11 @@ public class DataInitializer implements CommandLineRunner {
             save(curso, art,  horasArt, morales);
             save(curso, mus,  horasMus, morales);
             save(curso, ori,  horasOri, vega);
+            save(curso, tec,  horasTec, profTec);
 
-            // Complementarias (Inglés, Tecnología, Religión): solo desde 2° Básico.
-            // 1° Básico tiene únicamente las 8 asignaturas base.
-            if (nivel >= 2) {
+            // Inglés: solo desde 5° (es cuando entra en el plan de estudio).
+            if (nivel >= 5) {
                 save(curso, ing,  horasIng, herrera);
-                save(curso, tec,  horasTec, profTec);
-                save(curso, rel,  horasRel, vega);
             }
         }
         log.info("  → Curso-Asignaturas creados para los 8 cursos");
