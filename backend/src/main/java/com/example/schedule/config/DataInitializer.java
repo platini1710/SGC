@@ -32,6 +32,9 @@ public class DataInitializer implements CommandLineRunner {
     private final com.example.schedule.repository.ParametroRepository parametroRepository;
     private final com.example.schedule.repository.ColegioRepository colegioRepository;
     private final UsuarioRepository          usuarioRepository;
+    private final NotaRepository             notaRepository;
+    private final NotaFinalRepository        notaFinalRepository;
+    private final com.example.schedule.service.NotaFinalService notaFinalService;
     private final PasswordEncoder            passwordEncoder;
 
     @Override
@@ -50,6 +53,7 @@ public class DataInitializer implements CommandLineRunner {
         initParametros();
         initUsuarios();
         initColegio();
+        initNotasFinales();
         log.info("✅ DataInitializer completado — datos de prueba cargados.");
     }
 
@@ -505,6 +509,28 @@ public class DataInitializer implements CommandLineRunner {
             creadas++;
         }
         log.info("  → {} matrículas creadas (año {})", creadas, anio);
+    }
+
+    // ─── Notas finales persistidas (backfill desde las notas existentes) ─────
+
+    private void initNotasFinales() {
+        if (notaFinalRepository.count() > 0) return;
+
+        // Deriva las combinaciones distintas (estudiante, asignatura, año) a partir de
+        // las notas existentes y persiste sus notas finales en la tabla 'nota_final'.
+        java.util.Set<String> procesadas = new java.util.HashSet<>();
+        int creadas = 0;
+        for (Nota nota : notaRepository.findAll()) {
+            Long estudianteId = nota.getEstudiante().getId();
+            Long asignaturaId = nota.getAsignatura().getId();
+            int anio = nota.getTrimestre().getAnio();
+            String clave = estudianteId + "|" + asignaturaId + "|" + anio;
+            if (procesadas.add(clave)) {
+                notaFinalService.recalcularYGuardar(estudianteId, asignaturaId, anio);
+                creadas++;
+            }
+        }
+        log.info("  → {} notas finales persistidas (backfill)", creadas);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

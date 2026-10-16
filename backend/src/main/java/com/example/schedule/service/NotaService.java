@@ -10,11 +10,14 @@ import com.example.schedule.security.AuditoriaHelper;
 import com.example.schedule.security.NotaAccessChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,8 @@ public class NotaService {
     private final AsignaturaRepository asignaturaRepository;
     private final CursoAsignaturaRepository cursoAsignaturaRepository;
     private final CalculoNotasService calculoNotasService;
+    private final NotaFinalService notaFinalService;
+    private final NotaFinalRepository notaFinalRepository;
     private final NotaAccessChecker notaAccessChecker;
     private final AuditoriaHelper auditoriaHelper;
 
@@ -44,11 +49,14 @@ public class NotaService {
         List<Estudiante> estudiantes =
                 matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, anio);
 
-        // Ids de los tres trimestres del año (null si alguno no existe), con la misma
-        // búsqueda que usa getConsolidado.
-        Long t1Id = trimestreId(1, anio);
-        Long t2Id = trimestreId(2, anio);
-        Long t3Id = trimestreId(3, anio);
+        // Las cuatro notas finales (T1/T2/T3 y anual) se LEEN de la tabla persistente
+        // 'nota_final'. Se cargan en lote por asignatura+año para evitar N+1 y se indexan
+        // por estudianteId. Si un alumno aún no tiene fila (nunca calificado) los valores
+        // quedan null/blank.
+        Map<Long, NotaFinal> finalesPorEstudiante = notaFinalRepository
+                .findByAsignaturaIdAndAnio(asignaturaId, anio)
+                .stream()
+                .collect(Collectors.toMap(nf -> nf.getEstudiante().getId(), nf -> nf, (a, b) -> a));
 
         List<FilaNotaDTO> filas = estudiantes.stream()
                 .map(estudiante -> {
@@ -59,17 +67,17 @@ public class NotaService {
                             .sorted(Comparator.comparing(Nota::getPosicion))
                             .map(this::toNotaResponse)
                             .toList();
+                    NotaFinal nf = finalesPorEstudiante.get(estudiante.getId());
                     return FilaNotaDTO.builder()
                             .estudianteId(estudiante.getId())
                             .nombreEstudiante(nombreEstudiante(estudiante))
                             .notas(notas)
                             .promedio(calculoNotasService.promedioTrimestre(
                                     estudiante.getId(), asignaturaId, trimestreId))
-                            .notaFinalT1(promedio(estudiante.getId(), asignaturaId, t1Id))
-                            .notaFinalT2(promedio(estudiante.getId(), asignaturaId, t2Id))
-                            .notaFinalT3(promedio(estudiante.getId(), asignaturaId, t3Id))
-                            .notaFinalAnual(calculoNotasService.notaFinalAnual(
-                                    estudiante.getId(), asignaturaId, anio))
+                            .notaFinalT1(nf == null ? null : nf.getNfT1())
+                            .notaFinalT2(nf == null ? null : nf.getNfT2())
+                            .notaFinalT3(nf == null ? null : nf.getNfT3())
+                            .notaFinalAnual(nf == null ? null : nf.getNfAnual())
                             .build();
                 })
                 .toList();
@@ -86,6 +94,7 @@ public class NotaService {
                 .build();
     }
 
+    @Transactional
     public NotaResponse guardar(NotaRequest req) {
         Trimestre trimestre = getTrimestre(req.getTrimestreId());
         if (trimestre.getEstado() == EstadoTrimestre.CERRADO) {
@@ -111,35 +120,43 @@ public class NotaService {
                         req.getEstudianteId(), req.getAsignaturaId(), req.getTrimestreId(), req.getPosicion())
                 .orElse(null);
 
+        Nota guardada;
         if (nota != null) {
             nota.setValor(req.getValor());
             nota.setUsuarioModificacion(usuario);
             nota.setFechaModificacion(hoy);
             nota.setHoraModificacion(ahora);
-            return toNotaResponse(notaRepository.save(nota));
+            guardada = notaRepository.save(nota);
+        } else {
+            long existentes = notaRepository.countByEstudianteIdAndAsignaturaIdAndTrimestreId(
+                    req.getEstudianteId(), req.getAsignaturaId(), req.getTrimestreId());
+            if (existentes >= MAX_NOTAS) {
+                throw new SchedulingException("Máximo 9 notas por trimestre");
+            }
+
+            Asignatura asignatura = getAsignatura(req.getAsignaturaId());
+
+            Nota nueva = Nota.builder()
+                    .estudiante(estudiante)
+                    .asignatura(asignatura)
+                    .trimestre(trimestre)
+                    .valor(req.getValor())
+                    .posicion(req.getPosicion())
+                    .usuarioModificacion(usuario)
+                    .fechaModificacion(hoy)
+                    .horaModificacion(ahora)
+                    .build();
+            guardada = notaRepository.save(nueva);
         }
 
-        long existentes = notaRepository.countByEstudianteIdAndAsignaturaIdAndTrimestreId(
-                req.getEstudianteId(), req.getAsignaturaId(), req.getTrimestreId());
-        if (existentes >= MAX_NOTAS) {
-            throw new SchedulingException("Máximo 9 notas por trimestre");
-        }
+        // Recalcula y persiste las notas finales (nota_final) tras grabar la nota.
+        notaFinalService.recalcularYGuardar(
+                req.getEstudianteId(), req.getAsignaturaId(), trimestre.getAnio());
 
-        Asignatura asignatura = getAsignatura(req.getAsignaturaId());
-
-        Nota nueva = Nota.builder()
-                .estudiante(estudiante)
-                .asignatura(asignatura)
-                .trimestre(trimestre)
-                .valor(req.getValor())
-                .posicion(req.getPosicion())
-                .usuarioModificacion(usuario)
-                .fechaModificacion(hoy)
-                .horaModificacion(ahora)
-                .build();
-        return toNotaResponse(notaRepository.save(nueva));
+        return toNotaResponse(guardada);
     }
 
+    @Transactional
     public void eliminar(Long id) {
         Nota nota = notaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Nota no encontrada con id: " + id));
@@ -147,7 +164,13 @@ public class NotaService {
         if (nota.getTrimestre().getEstado() == EstadoTrimestre.CERRADO) {
             throw new TrimestreCerradoException("El trimestre está cerrado");
         }
+        Long estudianteId = nota.getEstudiante().getId();
+        Long asignaturaId = nota.getAsignatura().getId();
+        int anio = nota.getTrimestre().getAnio();
         notaRepository.delete(nota);
+
+        // Mantiene coherentes las notas finales persistidas tras eliminar una nota.
+        notaFinalService.recalcularYGuardar(estudianteId, asignaturaId, anio);
     }
 
     public ConsolidadoAnualResponse getConsolidado(Long cursoId, Long asignaturaId, int anio) {
