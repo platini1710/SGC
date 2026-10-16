@@ -17,6 +17,11 @@ export class TrimestreService {
     return this.http.get<Trimestre[]>(`${this.base}/api/trimestres`, { params });
   }
 
+  // Años distintos con trimestres registrados (desc), para poblar selectores.
+  getAnios(): Observable<number[]> {
+    return this.http.get<number[]>(`${this.base}/api/trimestres/anios`);
+  }
+
   abrir(id: number): Observable<Trimestre> {
     return this.http.put<Trimestre>(`${this.base}/api/trimestres/${id}/abrir`, {});
   }

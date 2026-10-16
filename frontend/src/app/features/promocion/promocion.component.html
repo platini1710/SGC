@@ -1,0 +1,118 @@
+<div>
+  <h2 class="page-title">🎓 Promoción de Año</h2>
+
+  @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Año origen</label>
+        <input type="number" min="2000" max="2100" step="1" [(ngModel)]="anioOrigen">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Año destino</label>
+        <input type="number" min="2000" max="2100" step="1" [(ngModel)]="anioDestino">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <button class="btn btn-primary btn-sm" [disabled]="cargando" (click)="generarPreview()">
+          {{ cargando ? 'Calculando...' : 'Previsualizar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+  }
+
+  @if (preview) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">
+        Propuesta {{ preview.anioOrigen }} → {{ preview.anioDestino }}
+      </h3>
+
+      @if (preview.incidencias.length > 0) {
+        <div class="alert alert-info">
+          <ul style="margin:0;padding-left:18px">
+            @for (inc of preview.incidencias; track inc) { <li>{{ inc }}</li> }
+          </ul>
+        </div>
+      }
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th>Curso origen</th>
+              <th>Propuesta</th>
+              <th>Acción</th>
+              <th>Curso destino</th>
+              <th style="text-align:center">¿Ya existe?</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (fila of filas; track fila.item.estudianteId) {
+              <tr>
+                <td>{{ fila.item.nombreEstudiante }}</td>
+                <td>{{ fila.item.cursoOrigenNombre }}</td>
+                <td>{{ fila.item.accionPropuesta }}</td>
+                <td>
+                  <select [(ngModel)]="fila.accion">
+                    @for (ac of acciones; track ac) {
+                      <option [ngValue]="ac">{{ ac }}</option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  @if (requiereCurso(fila)) {
+                    <select [(ngModel)]="fila.cursoDestinoId">
+                      <option [ngValue]="null">Seleccione curso</option>
+                      @for (c of cursos; track c.id) {
+                        <option [ngValue]="c.id">{{ c.nombre }}</option>
+                      }
+                    </select>
+                  } @else {
+                    —
+                  }
+                </td>
+                <td style="text-align:center">{{ fila.item.yaExisteEnDestino ? 'Sí' : 'No' }}</td>
+              </tr>
+            }
+            @empty {
+              <tr><td colspan="6" style="text-align:center;color:#757575">No hay alumnos a promover para ese año.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-primary" [disabled]="confirmando || filas.length === 0" (click)="confirmar()">
+          {{ confirmando ? 'Confirmando...' : 'Confirmar promoción' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  @if (resultado) {
+    <div class="card">
+      <h3 style="margin-bottom:12px">
+        Resultado {{ resultado.anioOrigen }} → {{ resultado.anioDestino }}
+      </h3>
+      <ul style="list-style:none;padding:0;margin:0 0 12px">
+        <li>Promovidos: <strong>{{ resultado.promovidos }}</strong></li>
+        <li>Repitentes: <strong>{{ resultado.repitentes }}</strong></li>
+        <li>Egresados: <strong>{{ resultado.egresados }}</strong></li>
+        <li>Excluidos: <strong>{{ resultado.excluidos }}</strong></li>
+        <li>Actualizados: <strong>{{ resultado.actualizados }}</strong></li>
+      </ul>
+      @if (resultado.incidencias.length > 0) {
+        <div class="alert alert-info">
+          <ul style="margin:0;padding-left:18px">
+            @for (inc of resultado.incidencias; track inc) { <li>{{ inc }}</li> }
+          </ul>
+        </div>
+      }
+    </div>
+  }
+</div>

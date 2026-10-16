@@ -5,6 +5,7 @@ import { CursoService } from '../../../core/services/curso.service';
 import { AsignaturaService } from '../../../core/services/asignatura.service';
 import { NotaService } from '../../../core/services/nota.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { AnioEscolarService } from '../../../core/services/anio-escolar.service';
 import { Curso } from '../../../core/models/curso.model';
 import { Asignatura } from '../../../core/models/asignatura.model';
 import { ConsolidadoAnual, AsignacionDocente } from '../../../core/models/nota.model';
@@ -21,16 +22,20 @@ export class ConsolidadoComponent implements OnInit {
   private asignaturaService = inject(AsignaturaService);
   private notaService = inject(NotaService);
   private authService = inject(AuthService);
+  private anioEscolarService = inject(AnioEscolarService);
 
   esDocente = this.authService.getRol() === 'DOCENTE';
   private misAsignaciones: AsignacionDocente[] = [];
 
   cursos: Curso[] = [];
   asignaturas: Asignatura[] = [];
+  // Años disponibles para el selector.
+  anios: number[] = [];
 
   cursoId: number | null = null;
   asignaturaId: number | null = null;
-  anio = new Date().getFullYear();
+  // Año seleccionado; por defecto el año escolar activo.
+  anio = this.anioEscolarService.anioActual;
 
   consolidado: ConsolidadoAnual | null = null;
 
@@ -38,6 +43,7 @@ export class ConsolidadoComponent implements OnInit {
   errorMsg = '';
 
   ngOnInit(): void {
+    this.anioEscolarService.anios$.subscribe(a => (this.anios = a));
     if (this.esDocente) {
       // DOCENTE: cursos y asignaturas provienen de sus asignaciones (sin endpoints de administración).
       this.notaService.getMisAsignaciones().subscribe({

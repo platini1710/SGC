@@ -10,12 +10,15 @@ export class EstudianteService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
 
-  getAll(page = 0, size = 20, cursoId?: number): Observable<PageResponse<Estudiante>> {
+  getAll(page = 0, size = 20, cursoId?: number, anio?: number): Observable<PageResponse<Estudiante>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
     if (cursoId !== undefined) {
       params = params.set('cursoId', cursoId.toString());
+    }
+    if (anio !== undefined) {
+      params = params.set('anio', anio.toString());
     }
     return this.http.get<PageResponse<Estudiante>>(`${this.base}/api/estudiantes`, { params });
   }
@@ -34,5 +37,16 @@ export class EstudianteService {
 
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/api/estudiantes/${id}`);
+  }
+
+  getInactivos(page = 0, size = 20): Observable<PageResponse<Estudiante>> {
+    const params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    return this.http.get<PageResponse<Estudiante>>(`${this.base}/api/estudiantes/inactivos`, { params });
+  }
+
+  reactivar(id: number): Observable<Estudiante> {
+    return this.http.put<Estudiante>(`${this.base}/api/estudiantes/${id}/reactivar`, {});
   }
 }

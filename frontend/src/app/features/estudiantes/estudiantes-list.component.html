@@ -1,27 +1,57 @@
 <div>
   <div class="flex items-center justify-between mb-16">
-    <h2 class="page-title" style="margin-bottom:0">🎓 Estudiantes</h2>
-    @if (!mostrarForm) {
-      <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nuevo Estudiante</button>
-    }
+    <h2 class="page-title" style="margin-bottom:0">🎓 Estudiantes{{ verInactivos ? ' inactivos' : '' }}</h2>
+    <div class="flex gap-8">
+      @if (!verInactivos) {
+        @if (!mostrarForm) {
+          <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Nuevo Estudiante</button>
+        }
+        <button class="btn btn-secondary btn-sm" (click)="verInactivosLista()">Ver inactivos</button>
+      } @else {
+        <button class="btn btn-secondary btn-sm" (click)="verActivos()">Ver activos</button>
+      }
+    </div>
   </div>
 
   @if (mensajeOk) { <div class="alert alert-success">{{ mensajeOk }}</div> }
   @if (errorMsg) { <div class="alert alert-error">{{ errorMsg }}</div> }
 
+  @if (!verInactivos) {
   <div class="card">
-    <div class="form-group" style="max-width:280px;margin-bottom:0">
-      <label>Filtrar por curso</label>
-      <select (change)="onFiltroCurso($any($event.target).value)">
-        <option value="">Todos</option>
-        @for (c of cursos; track c.id) {
-          <option [value]="c.id">{{ c.nombre }}</option>
-        }
-      </select>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Año escolar</label>
+        <select [value]="anioFiltro" (change)="onFiltroAnio($any($event.target).value)">
+          @for (a of anios; track a) {
+            <option [value]="a">{{ a }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Filtrar por curso</label>
+        <select (change)="onFiltroCurso($any($event.target).value)">
+          <option value="">Todos</option>
+          @for (c of cursos; track c.id) {
+            <option [value]="c.id">{{ c.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Buscar por RUT</label>
+        <input type="text" [(ngModel)]="filtroRut" placeholder="Ej: 20.000.023">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Buscar por apellido</label>
+        <input type="text" [(ngModel)]="filtroApellido" placeholder="Ej: Pérez">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <button class="btn btn-secondary btn-sm" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
     </div>
   </div>
+  }
 
-  @if (mostrarForm) {
+  @if (!verInactivos && mostrarForm) {
     <div class="card">
       <h3 style="margin-bottom:12px">{{ editandoId ? 'Editar' : 'Nuevo' }} Estudiante</h3>
       <form [formGroup]="form" (ngSubmit)="guardar()">
@@ -31,12 +61,16 @@
             <input formControlName="nombre" type="text" placeholder="Nombre">
           </div>
           <div class="form-group">
-            <label>Apellido *</label>
-            <input formControlName="apellido" type="text" placeholder="Apellido">
+            <label>Apellido Paterno *</label>
+            <input formControlName="apellidoPaterno" type="text" placeholder="Apellido paterno">
+          </div>
+          <div class="form-group">
+            <label>Apellido Materno</label>
+            <input formControlName="apellidoMaterno" type="text" placeholder="Apellido materno">
           </div>
           <div class="form-group">
             <label>RUT</label>
-            <input formControlName="rut" type="text" placeholder="12.345.678-9">
+            <input formControlName="rut" type="text" placeholder="12.345.678-9" [readonly]="editandoId !== null">
           </div>
           <div class="form-group">
             <label>Fecha de Nacimiento</label>
@@ -176,12 +210,47 @@
   <div class="card">
     @if (cargando) {
       <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else if (verInactivos) {
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido Paterno</th>
+            <th>Apellido Materno</th>
+            <th>RUT</th>
+            <th>Curso</th>
+            <th>Inactivado por</th>
+            <th>Fecha inactivación</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of estudiantesFiltrados; track e.id) {
+            <tr>
+              <td>{{ e.nombre }}</td>
+              <td>{{ e.apellidoPaterno }}</td>
+              <td>{{ e.apellidoMaterno ?? '—' }}</td>
+              <td>{{ e.rut }}</td>
+              <td>{{ e.nombreCurso ?? (e.cursoId ? nombreCurso(e.cursoId) : '—') }}</td>
+              <td>{{ e.inactivadoPor ?? '—' }}</td>
+              <td>{{ e.fechaInactivacion ? (e.fechaInactivacion + (e.horaInactivacion ? ' ' + e.horaInactivacion : '')) : '—' }}</td>
+              <td class="acciones">
+                <button class="btn btn-sm" style="background:#2e7d32;color:white" (click)="reactivar(e.id)">Reactivar</button>
+              </td>
+            </tr>
+          }
+          @empty {
+            <tr><td colspan="8" style="text-align:center;color:#757575">No hay estudiantes inactivos</td></tr>
+          }
+        </tbody>
+      </table>
     } @else {
       <table>
         <thead>
           <tr>
             <th>Nombre</th>
-            <th>Apellido</th>
+            <th>Apellido Paterno</th>
+            <th>Apellido Materno</th>
             <th>RUT</th>
             <th>Fecha Nacimiento</th>
             <th>Curso</th>
@@ -190,10 +259,11 @@
           </tr>
         </thead>
         <tbody>
-          @for (e of pageData?.content ?? []; track e.id) {
+          @for (e of estudiantesFiltrados; track e.id) {
             <tr>
               <td>{{ e.nombre }}</td>
-              <td>{{ e.apellido }}</td>
+              <td>{{ e.apellidoPaterno }}</td>
+              <td>{{ e.apellidoMaterno ?? '—' }}</td>
               <td>{{ e.rut }}</td>
               <td>{{ e.fechaNacimiento ?? '—' }}</td>
               <td>{{ e.nombreCurso ?? (e.cursoId ? nombreCurso(e.cursoId) : '—') }}</td>
@@ -206,7 +276,7 @@
             </tr>
           }
           @empty {
-            <tr><td colspan="7" style="text-align:center;color:#757575">No hay estudiantes registrados</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:#757575">No hay estudiantes registrados</td></tr>
           }
         </tbody>
       </table>

@@ -7,6 +7,7 @@ import { CursoService } from '../../../core/services/curso.service';
 import { TrimestreService } from '../../../core/services/trimestre.service';
 import { NotaService } from '../../../core/services/nota.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { AnioEscolarService } from '../../../core/services/anio-escolar.service';
 import { Curso, CursoAsignatura } from '../../../core/models/curso.model';
 import { Trimestre } from '../../../core/models/trimestre.model';
 import { GrillaNotas, FilaNota, NotaRequest, AsignacionDocente } from '../../../core/models/nota.model';
@@ -23,6 +24,7 @@ export class GrillaNotasComponent implements OnInit {
   private trimestreService = inject(TrimestreService);
   private notaService = inject(NotaService);
   private authService = inject(AuthService);
+  private anioEscolarService = inject(AnioEscolarService);
 
   // true si el usuario autenticado es DOCENTE (usa /mis-asignaciones en vez de cursos globales).
   esDocente = this.authService.getRol() === 'DOCENTE';
@@ -33,6 +35,9 @@ export class GrillaNotasComponent implements OnInit {
   // Solo las asignaturas del curso seleccionado.
   asignaturas: CursoAsignatura[] = [];
   trimestres: Trimestre[] = [];
+  // Años disponibles y año seleccionado (el año viaja implícito vía el trimestre elegido).
+  anios: number[] = [];
+  anio = this.anioEscolarService.anioActual;
 
   cursoId: number | null = null;
   asignaturaId: number | null = null;
@@ -85,14 +90,30 @@ export class GrillaNotasComponent implements OnInit {
         error: () => (this.errorMsg = 'Error cargando cursos')
       });
     }
-    this.trimestreService.getAll().subscribe({
-      next: (t) => (this.trimestres = t),
-      error: () => (this.errorMsg = 'Error cargando trimestres')
-    });
+    this.anioEscolarService.anios$.subscribe(a => (this.anios = a));
+    this.cargarTrimestres();
     this.notaService.getParametros().subscribe({
       next: (p) => (this.aproxNota = p.aproxNota ?? 'N'),
       error: () => (this.aproxNota = 'N')
     });
+  }
+
+  // Carga los trimestres del año seleccionado para poblar el selector de trimestre.
+  private cargarTrimestres(): void {
+    this.trimestreService.getAll(this.anio).subscribe({
+      next: (t) => (this.trimestres = t),
+      error: () => (this.errorMsg = 'Error cargando trimestres')
+    });
+  }
+
+  // Al cambiar el año: recarga los trimestres de ese año y resetea el trimestre/grilla.
+  onAnioChange(): void {
+    this.anioEscolarService.setAnio(this.anio);
+    this.trimestreId = null;
+    this.grilla = null;
+    this.mensajeOk = '';
+    this.errorMsg = '';
+    this.cargarTrimestres();
   }
 
   // Al cambiar el curso: carga solo las asignaturas de ese curso y resetea la selección.

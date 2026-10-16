@@ -25,7 +25,11 @@
       </div>
       <div class="form-group">
         <label>Año</label>
-        <input type="number" [(ngModel)]="anio" (ngModelChange)="onSeleccion()">
+        <select [(ngModel)]="anio" (ngModelChange)="onSeleccion()">
+          @for (a of anios; track a) {
+            <option [ngValue]="a">{{ a }}</option>
+          }
+        </select>
       </div>
     </div>
   </div>

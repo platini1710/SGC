@@ -12,6 +12,7 @@ import { ConsolidadoComponent } from './features/notas/consolidado/consolidado.c
 import { TrimestresComponent } from './features/notas/trimestres/trimestres.component';
 import { ReportesComponent } from './features/reportes/reportes.component';
 import { ParametrosComponent } from './features/parametros/parametros.component';
+import { PromocionComponent } from './features/promocion/promocion.component';
 import { LoginComponent } from './features/auth/login/login.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
@@ -32,5 +33,6 @@ export const routes: Routes = [
   { path: 'consolidado', component: ConsolidadoComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'DOCENTE'] } },
   { path: 'reportes', component: ReportesComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'DOCENTE'] } },
   { path: 'parametros', component: ParametrosComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
+  { path: 'promocion', component: PromocionComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: '**', redirectTo: 'horario/curso' }
 ];

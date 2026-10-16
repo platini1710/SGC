@@ -6,6 +6,7 @@ import { environment } from '../../../environments/environment';
 export interface Parametros {
   aproxNota: string;              // 'S' aproxima, otro trunca
   timeoutInactividad: number;     // segundos
+  anioEscolarActivo: number;      // año escolar en curso
 }
 
 @Injectable({ providedIn: 'root' })

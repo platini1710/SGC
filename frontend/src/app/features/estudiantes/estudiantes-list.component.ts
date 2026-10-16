@@ -1,10 +1,11 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { EstudianteService } from '../../core/services/estudiante.service';
 import { CursoService } from '../../core/services/curso.service';
 import { ApoderadoService } from '../../core/services/apoderado.service';
 import { ReporteService } from '../../core/services/reporte.service';
+import { AnioEscolarService } from '../../core/services/anio-escolar.service';
 import { Estudiante, EstudianteRequest } from '../../core/models/estudiante.model';
 import { PageResponse } from '../../core/models/page.model';
 import { Curso } from '../../core/models/curso.model';
@@ -13,7 +14,7 @@ import { Apoderado } from '../../core/models/apoderado.model';
 @Component({
   selector: 'app-estudiantes-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './estudiantes-list.component.html',
   styleUrl: './estudiantes-list.component.scss'
 })
@@ -22,14 +23,23 @@ export class EstudiantesListComponent implements OnInit {
   private cursoService = inject(CursoService);
   private apoderadoService = inject(ApoderadoService);
   private reporteService = inject(ReporteService);
+  private anioEscolarService = inject(AnioEscolarService);
   private fb = inject(FormBuilder);
 
   pageData: PageResponse<Estudiante> | null = null;
   cursos: Curso[] = [];
   apoderados: Apoderado[] = [];
+  // Años disponibles y año seleccionado (por defecto el año escolar activo).
+  anios: number[] = [];
+  anioFiltro = this.anioEscolarService.anioActual;
   page = 0;
   size = 20;
   cursoFiltro: number | null = null;
+  // Filtros de búsqueda en vivo (sobre la página cargada).
+  filtroRut = '';
+  filtroApellido = '';
+  // Alterna entre el listado de activos y el de inactivos.
+  verInactivos = false;
   form!: FormGroup;
   mostrarForm = false;
   editandoId: number | null = null;
@@ -45,13 +55,16 @@ export class EstudiantesListComponent implements OnInit {
     this.initForm();
     this.cursoService.getAll().subscribe(c => (this.cursos = c));
     this.apoderadoService.getAll().subscribe(a => (this.apoderados = a));
+    this.anioEscolarService.anios$.subscribe(a => (this.anios = a));
+    this.anioEscolarService.anio$.subscribe(a => (this.anioFiltro = a));
     this.cargar();
   }
 
   private initForm(): void {
     this.form = this.fb.group({
       nombre: ['', Validators.required],
-      apellido: ['', Validators.required],
+      apellidoPaterno: ['', Validators.required],
+      apellidoMaterno: [''],
       rut: [''],
       fechaNacimiento: [''],
       cursoId: [null as number | null],
@@ -83,9 +96,45 @@ export class EstudiantesListComponent implements OnInit {
 
   cargar(): void {
     this.cargando = true;
-    this.estudianteService.getAll(this.page, this.size, this.cursoFiltro ?? undefined).subscribe({
+    // El año solo aplica cuando se filtra por curso (listado por matrícula del año).
+    const anio = this.cursoFiltro != null ? this.anioFiltro : undefined;
+    const obs = this.verInactivos
+      ? this.estudianteService.getInactivos(this.page, this.size)
+      : this.estudianteService.getAll(this.page, this.size, this.cursoFiltro ?? undefined, anio);
+    obs.subscribe({
       next: (p) => { this.pageData = p; this.cargando = false; },
       error: () => { this.errorMsg = 'Error cargando estudiantes'; this.cargando = false; }
+    });
+  }
+
+  verActivos(): void {
+    this.verInactivos = false;
+    this.page = 0;
+    this.mostrarForm = false;
+    this.mensajeOk = '';
+    this.errorMsg = '';
+    this.cargar();
+  }
+
+  verInactivosLista(): void {
+    this.verInactivos = true;
+    this.page = 0;
+    this.mostrarForm = false;
+    this.limpiarFiltros();
+    this.mensajeOk = '';
+    this.errorMsg = '';
+    this.cargar();
+  }
+
+  reactivar(id: number): void {
+    const e = (this.pageData?.content ?? []).find(x => x.id === id);
+    const descripcion = e
+      ? `${e.nombre} ${e.apellidoPaterno}${e.apellidoMaterno ? ' ' + e.apellidoMaterno : ''} con RUT ${e.rut || '—'}`
+      : '';
+    if (!window.confirm('¿Reactivar este estudiante? Volverá a aparecer en el listado de activos.')) { return; }
+    this.estudianteService.reactivar(id).subscribe({
+      next: () => { this.mensajeOk = `Estudiante ${descripcion} reactivado.`; this.cargar(); },
+      error: () => (this.errorMsg = 'Error al reactivar el estudiante')
     });
   }
 
@@ -93,6 +142,33 @@ export class EstudiantesListComponent implements OnInit {
     this.cursoFiltro = value === '' ? null : Number(value);
     this.page = 0;
     this.cargar();
+  }
+
+  onFiltroAnio(value: string): void {
+    this.anioFiltro = Number(value);
+    this.anioEscolarService.setAnio(this.anioFiltro);
+    this.page = 0;
+    this.cargar();
+  }
+
+  // Lista mostrada: aplica los filtros de RUT y apellido sobre la página cargada.
+  get estudiantesFiltrados(): Estudiante[] {
+    const items = this.pageData?.content ?? [];
+    const rut = this.filtroRut.trim().toLowerCase();
+    const apellido = this.filtroApellido.trim().toLowerCase();
+    if (!rut && !apellido) { return items; }
+    return items.filter((e) => {
+      const okRut = !rut || (e.rut ?? '').toLowerCase().includes(rut);
+      const okApe = !apellido
+        || (e.apellidoPaterno ?? '').toLowerCase().includes(apellido)
+        || (e.apellidoMaterno ?? '').toLowerCase().includes(apellido);
+      return okRut && okApe;
+    });
+  }
+
+  limpiarFiltros(): void {
+    this.filtroRut = '';
+    this.filtroApellido = '';
   }
 
   anterior(): void {
@@ -121,7 +197,8 @@ export class EstudiantesListComponent implements OnInit {
       this.editandoId = e.id;
       this.form.setValue({
         nombre: e.nombre,
-        apellido: e.apellido,
+        apellidoPaterno: e.apellidoPaterno,
+        apellidoMaterno: e.apellidoMaterno ?? '',
         rut: e.rut ?? '',
         fechaNacimiento: e.fechaNacimiento ?? '',
         cursoId: e.cursoId ?? null,
@@ -147,15 +224,19 @@ export class EstudiantesListComponent implements OnInit {
         fonoEmergencia: e.fonoEmergencia ?? ''
       });
       this.fotoPreview = e.foto ?? null;
+      // RUT inmutable en edición.
+      this.form.get('rut')?.disable();
     } else {
       this.editandoId = null;
       this.form.reset({
-        nombre: '', apellido: '', rut: '', fechaNacimiento: '', cursoId: null, apoderadoId: null,
+        nombre: '', apellidoPaterno: '', apellidoMaterno: '', rut: '', fechaNacimiento: '', cursoId: null, apoderadoId: null,
         lugarNacimiento: '', nacionalidad: '', sexo: '', comuna: '', telefono: '', domicilio: '', foto: '',
         padreNombre: '', padreRut: '', padreOcupacion: '', madreNombre: '', madreRut: '', madreOcupacion: '',
         apoderadoRelacion: '', prevision: '', alergias: '', condicionMedica: '', contactoEmergencia: '', fonoEmergencia: ''
       });
       this.fotoPreview = null;
+      // RUT editable al crear.
+      this.form.get('rut')?.enable();
     }
   }
 
@@ -168,8 +249,9 @@ export class EstudiantesListComponent implements OnInit {
 
   guardar(): void {
     if (this.form.invalid) { return; }
-    const val = this.form.value as {
-      nombre: string; apellido: string; rut: string; fechaNacimiento: string;
+    // getRawValue incluye el control RUT aunque esté deshabilitado en edición.
+    const val = this.form.getRawValue() as {
+      nombre: string; apellidoPaterno: string; apellidoMaterno: string; rut: string; fechaNacimiento: string;
       cursoId: number | null; apoderadoId: number | null;
       lugarNacimiento: string; nacionalidad: string; sexo: string; comuna: string;
       telefono: string; domicilio: string; foto: string;
@@ -180,7 +262,8 @@ export class EstudiantesListComponent implements OnInit {
     };
     const req: EstudianteRequest = {
       nombre: val.nombre,
-      apellido: val.apellido,
+      apellidoPaterno: val.apellidoPaterno,
+      apellidoMaterno: val.apellidoMaterno || undefined,
       rut: val.rut,
       fechaNacimiento: val.fechaNacimiento || undefined,
       cursoId: val.cursoId,
@@ -205,24 +288,31 @@ export class EstudiantesListComponent implements OnInit {
       contactoEmergencia: val.contactoEmergencia || undefined,
       fonoEmergencia: val.fonoEmergencia || undefined
     };
+    // Nombre completo + RUT para el mensaje de confirmación.
+    const descripcion = `${val.nombre} ${val.apellidoPaterno}${val.apellidoMaterno ? ' ' + val.apellidoMaterno : ''}, RUT ${val.rut || '—'}`;
     if (this.editandoId !== null) {
       this.estudianteService.update(this.editandoId, req).subscribe({
-        next: () => { this.mensajeOk = 'Estudiante actualizado.'; this.cancelar(); this.cargar(); },
+        next: () => { this.mensajeOk = `Estudiante ${descripcion} actualizado.`; this.cancelar(); this.cargar(); },
         error: () => (this.errorMsg = 'Error actualizando estudiante')
       });
     } else {
       this.estudianteService.create(req).subscribe({
-        next: () => { this.mensajeOk = 'Estudiante creado.'; this.cancelar(); this.cargar(); },
+        next: () => { this.mensajeOk = `Estudiante ${descripcion} creado.`; this.cancelar(); this.cargar(); },
         error: () => (this.errorMsg = 'Error creando estudiante')
       });
     }
   }
 
   eliminar(id: number): void {
-    if (!window.confirm('¿Eliminar este estudiante?')) { return; }
+    if (!window.confirm('¿Marcar este estudiante como inactivo? Dejará de aparecer en el listado.')) { return; }
+    // Busca el estudiante en la lista cargada para armar el mensaje con nombre y RUT.
+    const e = (this.pageData?.content ?? []).find(x => x.id === id);
+    const descripcion = e
+      ? `${e.nombre} ${e.apellidoPaterno}${e.apellidoMaterno ? ' ' + e.apellidoMaterno : ''} con RUT ${e.rut || '—'}`
+      : '';
     this.estudianteService.delete(id).subscribe({
-      next: () => { this.mensajeOk = 'Estudiante eliminado.'; this.cargar(); },
-      error: () => (this.errorMsg = 'Error eliminando estudiante')
+      next: () => { this.mensajeOk = `Estudiante ${descripcion} marcado como inactivo.`; this.cargar(); },
+      error: () => (this.errorMsg = 'Error al inactivar el estudiante')
     });
   }
 
