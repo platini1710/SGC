@@ -1,6 +1,8 @@
 package com.example.schedule.service;
 
 import com.example.schedule.dto.EstudianteRequest;
+import com.example.schedule.exception.ResourceNotFoundException;
+import com.example.schedule.model.Apoderado;
 import com.example.schedule.model.Curso;
 import com.example.schedule.model.EstadoMatricula;
 import com.example.schedule.model.Estudiante;
@@ -20,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -56,12 +59,20 @@ class EstudianteServiceTest {
         return c;
     }
 
+    private Apoderado apoderado(Long id) {
+        Apoderado a = new Apoderado();
+        a.setId(id);
+        return a;
+    }
+
+    // Request con curso y un apoderado existente (apoderado obligatorio).
     private EstudianteRequest requestConCurso(Long cursoId) {
         return EstudianteRequest.builder()
                 .nombre("Ana")
                 .apellidoPaterno("P\u00e9rez")
                 .rut("20.000.000-1")
                 .cursoId(cursoId)
+                .apoderadoId(7L)
                 .build();
     }
 
@@ -69,6 +80,7 @@ class EstudianteServiceTest {
     void create_conMatriculaExistente_actualizaCursoSin409() {
         Curso curso = curso(3L);
         when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
+        when(apoderadoRepository.findById(7L)).thenReturn(Optional.of(apoderado(7L)));
         when(estudianteRepository.save(any(Estudiante.class)))
                 .thenAnswer(inv -> {
                     Estudiante e = inv.getArgument(0);
@@ -95,6 +107,7 @@ class EstudianteServiceTest {
     void create_sinMatriculaPrevia_creaMatriculaActiva() {
         Curso curso = curso(3L);
         when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
+        when(apoderadoRepository.findById(7L)).thenReturn(Optional.of(apoderado(7L)));
         when(estudianteRepository.save(any(Estudiante.class)))
                 .thenAnswer(inv -> {
                     Estudiante e = inv.getArgument(0);
@@ -118,6 +131,7 @@ class EstudianteServiceTest {
 
     @Test
     void create_sinCurso_noTocaMatriculas() {
+        when(apoderadoRepository.findById(7L)).thenReturn(Optional.of(apoderado(7L)));
         when(estudianteRepository.save(any(Estudiante.class)))
                 .thenAnswer(inv -> {
                     Estudiante e = inv.getArgument(0);
@@ -131,5 +145,16 @@ class EstudianteServiceTest {
         verify(matriculaRepository, never()).save(any());
         verify(matriculaRepository, never()).findByEstudianteIdAndAnio(anyLong(), anyInt());
         verify(anioEscolarService, never()).resolver(eq(null));
+    }
+
+    @Test
+    void create_conApoderadoInexistente_lanza404() {
+        // El apoderado debe existir previamente: si no existe se rechaza (ResourceNotFoundException -> 404).
+        when(apoderadoRepository.findById(7L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> estudianteService.create(requestConCurso(null)));
+
+        verify(estudianteRepository, never()).save(any());
     }
 }

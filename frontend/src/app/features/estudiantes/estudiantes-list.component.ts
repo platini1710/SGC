@@ -68,7 +68,8 @@ export class EstudiantesListComponent implements OnInit {
       rut: [''],
       fechaNacimiento: [''],
       cursoId: [null as number | null],
-      apoderadoId: [null as number | null],
+      // El apoderado es obligatorio: debe existir previamente en el mantenedor de Apoderados.
+      apoderadoId: [null as number | null, Validators.required],
       // Identificación
       lugarNacimiento: [''],
       nacionalidad: [''],

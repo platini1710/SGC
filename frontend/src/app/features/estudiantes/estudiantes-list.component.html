@@ -86,13 +86,19 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Apoderado</label>
+            <label>Apoderado *</label>
             <select formControlName="apoderadoId">
-              <option [ngValue]="null">Sin apoderado</option>
+              <option [ngValue]="null">Seleccione un apoderado</option>
               @for (a of apoderados; track a.id) {
                 <option [ngValue]="a.id">{{ a.nombre }} {{ a.apellidoPaterno }} ({{ a.rut }})</option>
               }
             </select>
+            @if (form.get('apoderadoId')?.invalid && form.get('apoderadoId')?.touched) {
+              <small style="color:#c62828">El apoderado es obligatorio</small>
+            }
+            @if (apoderados.length === 0) {
+              <small style="color:#c62828">No hay apoderados registrados. Primero cree uno en Mantenedores &gt; Apoderados.</small>
+            }
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 package com.example.schedule.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -16,6 +17,9 @@ public class EstudianteRequest {
     private String rut;
     private LocalDate fechaNacimiento;
     private Long cursoId;
+
+    // El apoderado es obligatorio: debe existir previamente en el mantenedor de Apoderados.
+    @NotNull(message = "El apoderado es obligatorio")
     private Long apoderadoId;
 
     // Identificación
