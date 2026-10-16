@@ -174,8 +174,10 @@ class CalculoNotasServiceTest {
     // ─── notaFinalAnual: año parcial y vacío ──────────────────────────────────
 
     @Test
-    void notaFinal_soloT1yT2_promediaSoloLosPresentes() {
-        stubAproxNota("N"); // (5.0 + 6.0) / 2 = 5.50 -> trunca a 1 decimal 5.5
+    void notaFinal_soloT1yT2_sinT3_devuelveNull() {
+        // La NF anual solo se calcula con los TRES trimestres con nota.
+        // Con T1 y T2 presentes pero T3 vacío, debe quedar vacía (null).
+        stubAproxNota("N");
         stubTrimestre(1, 1L);
         stubTrimestre(2, 2L);
         stubTrimestre(3, 3L);
@@ -185,7 +187,39 @@ class CalculoNotasServiceTest {
 
         BigDecimal nf = service.notaFinalAnual(ESTUDIANTE_ID, ASIGNATURA_ID, ANIO);
 
-        assertEquals(0, nf.compareTo(new BigDecimal("5.5")));
+        assertNull(nf);
+    }
+
+    @Test
+    void notaFinal_soloT1_devuelveNull() {
+        // Solo un trimestre con nota -> anual vacía.
+        stubAproxNota("N");
+        stubTrimestre(1, 1L);
+        stubTrimestre(2, 2L);
+        stubTrimestre(3, 3L);
+        stubNotas(1L, nota(new BigDecimal("5.0")));
+        stubNotas(2L); // T2 sin notas
+        stubNotas(3L); // T3 sin notas
+
+        BigDecimal nf = service.notaFinalAnual(ESTUDIANTE_ID, ASIGNATURA_ID, ANIO);
+
+        assertNull(nf);
+    }
+
+    @Test
+    void notaFinal_tresTrimestresConNota_siCalcula() {
+        // Caso feliz: los tres trimestres con nota -> promedia los tres.
+        stubAproxNota("N"); // (5.0 + 6.0 + 7.0)/3 = 6.00 -> 6.0
+        stubTrimestre(1, 1L);
+        stubTrimestre(2, 2L);
+        stubTrimestre(3, 3L);
+        stubNotas(1L, nota(new BigDecimal("5.0")));
+        stubNotas(2L, nota(new BigDecimal("6.0")));
+        stubNotas(3L, nota(new BigDecimal("7.0")));
+
+        BigDecimal nf = service.notaFinalAnual(ESTUDIANTE_ID, ASIGNATURA_ID, ANIO);
+
+        assertEquals(0, nf.compareTo(new BigDecimal("6.0")));
     }
 
     @Test

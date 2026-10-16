@@ -60,18 +60,22 @@ public class CalculoNotasService {
     }
 
     public BigDecimal notaFinalAnual(Long estudianteId, Long asignaturaId, int anio) {
+        // La nota final anual SOLO se calcula cuando los tres trimestres del año
+        // existen y cada uno tiene al menos una nota para el estudiante/asignatura.
+        // Si falta cualquiera de los tres promedios, la NF anual queda vacía (null).
         List<BigDecimal> presentes = new ArrayList<>();
         for (int numero = 1; numero <= 3; numero++) {
             Optional<Trimestre> trimestre = trimestreRepository.findByNumeroAndAnio(numero, anio);
             if (trimestre.isEmpty()) {
-                continue;
+                return null;
             }
             BigDecimal promedio = promedioTrimestre(estudianteId, asignaturaId, trimestre.get().getId());
-            if (promedio != null) {
-                presentes.add(promedio);
+            if (promedio == null) {
+                return null;
             }
+            presentes.add(promedio);
         }
-        if (presentes.isEmpty()) {
+        if (presentes.size() < 3) {
             return null;
         }
         BigDecimal suma = presentes.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
