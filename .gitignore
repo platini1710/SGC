@@ -1,14 +1,25 @@
-# Secrets
-.env
+# Secrets / keys — never commit
+*.pem
+*.key
+*.p12
+*.pfx
 
-# Backend
+# Local diagnostic dumps and test report outputs
+diag*.txt
+*.pdf
+
+# Build output
 backend/target/
-backend/.agents/
-
-# Frontend
-frontend/node_modules/
 frontend/dist/
 frontend/.angular/
+node_modules/
 
-# Logs
-*.log
+# Agent task artifacts
+.agents/
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db

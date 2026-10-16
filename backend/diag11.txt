@@ -1,3 +1,0 @@
-prefijo: data:image/png;base64,iVBORw0KGgoAAAANSU
-longitud total: 3712
-ERROR decodificando: Excepción al llamar a "FromBase64String" con "1" argumentos: "The input is not a valid Base-64 string as it contains a non-base 64 character, more than two padding characters, or an illegal character among the padding characters."

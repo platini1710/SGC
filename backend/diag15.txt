@@ -1,7 +1,0 @@
-Trimestre 1 abierto
-Alumno:   (id=)
-  Lenguaje y Comunicación: notas 6, 5,5, 6,5
-  Matemática: notas 4, 5, 4,5
-  Ciencias Naturales: notas 7, 6, 6,5
-  Historia, Geografía y Ciencias Sociales: notas 3, 4, 3,5
-trimestreId=1  cursoId=1  estudianteId=

@@ -1,1 +1,0 @@
-admin_login=200 rol=ADMIN | colegio=200 Colegio De La Salle

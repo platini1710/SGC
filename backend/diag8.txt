@@ -1,3 +1,0 @@
-login=OK
-asignatura=1
-PDF status=200 type=application/pdf len=1870
