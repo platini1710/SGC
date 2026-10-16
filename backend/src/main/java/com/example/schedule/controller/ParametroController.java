@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Year;
 import java.util.Map;
 
 @RestController
@@ -17,18 +18,27 @@ public class ParametroController {
 
     private static final int TIMEOUT_DEFAULT = 60; // segundos
 
-    // Devuelve los parámetros: { "aproxNota": "S", "timeoutInactividad": 60 }.
+    // Devuelve los parámetros: { "aproxNota": "S", "timeoutInactividad": 60, "anioEscolarActivo": 2025 }.
     @GetMapping
     public Map<String, Object> getParametros() {
         return parametroRepository.findTopByOrderByIdAsc()
-                .map(p -> Map.<String, Object>of(
-                        "aproxNota", p.getAproxNota() == null ? "N" : p.getAproxNota(),
-                        "timeoutInactividad", p.getTimeoutInactividad() == null ? TIMEOUT_DEFAULT : p.getTimeoutInactividad()
-                ))
-                .orElse(Map.of("aproxNota", "N", "timeoutInactividad", TIMEOUT_DEFAULT));
+                .map(p -> {
+                    int anioEscolarActivo = p.getAnioEscolarActivo() == null
+                            ? Year.now().getValue() : p.getAnioEscolarActivo();
+                    return Map.<String, Object>of(
+                            "aproxNota", p.getAproxNota() == null ? "N" : p.getAproxNota(),
+                            "timeoutInactividad", p.getTimeoutInactividad() == null ? TIMEOUT_DEFAULT : p.getTimeoutInactividad(),
+                            "anioEscolarActivo", anioEscolarActivo
+                    );
+                })
+                .orElseGet(() -> Map.of(
+                        "aproxNota", "N",
+                        "timeoutInactividad", TIMEOUT_DEFAULT,
+                        "anioEscolarActivo", Year.now().getValue()
+                ));
     }
 
-    // Permite cambiar los parámetros: body { "aproxNota": "S", "timeoutInactividad": 120 }.
+    // Permite cambiar los parámetros: body { "aproxNota": "S", "timeoutInactividad": 120, "anioEscolarActivo": 2026 }.
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping
     public Map<String, Object> setParametros(@RequestBody Map<String, Object> body) {
@@ -41,11 +51,17 @@ public class ParametroController {
         if (body.containsKey("timeoutInactividad") && body.get("timeoutInactividad") != null) {
             p.setTimeoutInactividad(Integer.valueOf(String.valueOf(body.get("timeoutInactividad"))));
         }
+        if (body.containsKey("anioEscolarActivo") && body.get("anioEscolarActivo") != null) {
+            p.setAnioEscolarActivo(Integer.valueOf(String.valueOf(body.get("anioEscolarActivo"))));
+        }
         parametroRepository.save(p);
 
+        int anioEscolarActivo = p.getAnioEscolarActivo() == null
+                ? Year.now().getValue() : p.getAnioEscolarActivo();
         return Map.of(
                 "aproxNota", p.getAproxNota() == null ? "N" : p.getAproxNota(),
-                "timeoutInactividad", p.getTimeoutInactividad() == null ? TIMEOUT_DEFAULT : p.getTimeoutInactividad()
+                "timeoutInactividad", p.getTimeoutInactividad() == null ? TIMEOUT_DEFAULT : p.getTimeoutInactividad(),
+                "anioEscolarActivo", anioEscolarActivo
         );
     }
 }

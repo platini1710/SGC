@@ -38,8 +38,18 @@ public class CursoController {
     }
 
     @GetMapping("/{id}/estudiantes")
-    public Page<EstudianteResponse> getEstudiantes(@PathVariable Long id, Pageable pageable) {
-        return estudianteService.findByCurso(id, pageable);
+    public Page<EstudianteResponse> getEstudiantes(@PathVariable Long id,
+                                                   @RequestParam(required = false) Integer anio,
+                                                   Pageable pageable) {
+        return estudianteService.findByCurso(id, anio, pageable);
+    }
+
+    // Asigna o quita el profesor jefe del curso. body: { "profesorId": 3 } o { "profesorId": null }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/profesor-jefe")
+    public CursoResponse asignarProfesorJefe(@PathVariable Long id,
+                                             @RequestBody java.util.Map<String, Long> body) {
+        return cursoService.asignarProfesorJefe(id, body.get("profesorId"));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

@@ -25,6 +25,7 @@ public class NotaService {
     private final NotaRepository notaRepository;
     private final TrimestreRepository trimestreRepository;
     private final EstudianteRepository estudianteRepository;
+    private final MatriculaRepository matriculaRepository;
     private final CursoRepository cursoRepository;
     private final AsignaturaRepository asignaturaRepository;
     private final CursoAsignaturaRepository cursoAsignaturaRepository;
@@ -38,8 +39,9 @@ public class NotaService {
         Asignatura asignatura = getAsignatura(asignaturaId);
         Trimestre trimestre = getTrimestre(trimestreId);
 
+        // Alumnos del curso según la matrícula del año del trimestre (sin matrículas → filas vacío).
         List<Estudiante> estudiantes =
-                estudianteRepository.findByCursoIdOrderByApellidoAscNombreAsc(cursoId);
+                matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, trimestre.getAnio());
 
         List<FilaNotaDTO> filas = estudiantes.stream()
                 .map(estudiante -> {
@@ -78,9 +80,14 @@ public class NotaService {
             throw new TrimestreCerradoException("El trimestre está cerrado");
         }
 
-        // Derivar curso del estudiante y verificar acceso ANTES de ramificar/persistir.
+        // Derivar curso del alumno desde la matrícula del año del trimestre (I2) y verificar
+        // acceso ANTES de ramificar/persistir.
         Estudiante estudiante = getEstudiante(req.getEstudianteId());
-        Long cursoId = estudiante.getCurso().getId();
+        Matricula matricula = matriculaRepository
+                .findByEstudianteIdAndAnio(estudiante.getId(), trimestre.getAnio())
+                .orElseThrow(() -> new SchedulingException(
+                        "El alumno no tiene matricula en el ano " + trimestre.getAnio()));
+        Long cursoId = matricula.getCurso().getId();
         notaAccessChecker.verificar(cursoId, req.getAsignaturaId());
 
         String usuario = auditoriaHelper.usuarioActual();
@@ -141,7 +148,7 @@ public class NotaService {
         Long t3Id = trimestreId(3, anio);
 
         List<Estudiante> estudiantes =
-                estudianteRepository.findByCursoIdOrderByApellidoAscNombreAsc(cursoId);
+                matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, anio);
 
         List<FilaConsolidadoDTO> filas = estudiantes.stream()
                 .map(estudiante -> FilaConsolidadoDTO.builder()
@@ -197,7 +204,21 @@ public class NotaService {
     }
 
     private String nombreEstudiante(Estudiante e) {
-        return e.getApellido() + ", " + e.getNombre();
+        return apellidos(e) + ", " + e.getNombre();
+    }
+
+    private String apellidos(Estudiante e) {
+        StringBuilder sb = new StringBuilder();
+        if (e.getApellidoPaterno() != null && !e.getApellidoPaterno().isBlank()) {
+            sb.append(e.getApellidoPaterno().trim());
+        }
+        if (e.getApellidoMaterno() != null && !e.getApellidoMaterno().isBlank()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(e.getApellidoMaterno().trim());
+        }
+        return sb.toString();
     }
 
     private NotaResponse toNotaResponse(Nota n) {

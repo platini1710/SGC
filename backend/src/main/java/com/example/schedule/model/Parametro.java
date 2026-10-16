@@ -23,4 +23,8 @@ public class Parametro {
     // Segundos de inactividad antes del cierre automático de sesión en el frontend.
     @Column(name = "timeout_inactividad")
     private Integer timeoutInactividad;
+
+    // Año escolar activo (año "en curso" por defecto para listados, notas y reportes).
+    @Column(name = "anio_escolar_activo")
+    private Integer anioEscolarActivo;
 }

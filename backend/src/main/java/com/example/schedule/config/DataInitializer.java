@@ -28,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final EstudianteRepository       estudianteRepository;
     private final ApoderadoRepository        apoderadoRepository;
     private final TrimestreRepository        trimestreRepository;
+    private final MatriculaRepository        matriculaRepository;
     private final com.example.schedule.repository.ParametroRepository parametroRepository;
     private final com.example.schedule.repository.ColegioRepository colegioRepository;
     private final UsuarioRepository          usuarioRepository;
@@ -44,6 +45,7 @@ public class DataInitializer implements CommandLineRunner {
         initCursoAsignaturas();
         initApoderados();
         initEstudiantes();
+        initMatriculas();
         initTrimestres();
         initParametros();
         initUsuarios();
@@ -399,7 +401,8 @@ public class DataInitializer implements CommandLineRunner {
 
                 Estudiante.EstudianteBuilder builder = Estudiante.builder()
                     .nombre(nombre)
-                    .apellido(apellidoP + " " + apellidoM)
+                    .apellidoPaterno(apellidoP)
+                    .apellidoMaterno(apellidoM)
                     .rut(rutStr)
                     .fechaNacimiento(fnac)
                     .curso(curso)
@@ -466,13 +469,42 @@ public class DataInitializer implements CommandLineRunner {
     // ─── Parámetros (aproxNota) ──────────────────────────────────────────────
 
     private void initParametros() {
-        if (parametroRepository.count() > 0) return;
-        // Por defecto 'S' (aproxima la nota) y 60 segundos de inactividad.
-        parametroRepository.save(com.example.schedule.model.Parametro.builder()
-            .aproxNota("S")
-            .timeoutInactividad(60)
-            .build());
-        log.info("  → Parámetro creado: aproxNota='S', timeoutInactividad=60s");
+        int anioActual = Year.now().getValue();
+        Parametro p = parametroRepository.findTopByOrderByIdAsc().orElse(null);
+        if (p == null) {
+            // Por defecto 'S' (aproxima la nota), 60 segundos de inactividad y año escolar = actual.
+            parametroRepository.save(Parametro.builder()
+                .aproxNota("S")
+                .timeoutInactividad(60)
+                .anioEscolarActivo(anioActual)
+                .build());
+            log.info("  → Parámetro creado: aproxNota='S', timeoutInactividad=60s, anioEscolarActivo={}", anioActual);
+        } else if (p.getAnioEscolarActivo() == null) {
+            // Backfill idempotente del año escolar activo en una fila preexistente.
+            p.setAnioEscolarActivo(anioActual);
+            parametroRepository.save(p);
+            log.info("  → Parámetro: backfill anioEscolarActivo={}", anioActual);
+        }
+    }
+
+    // ─── Matrículas (año actual para los estudiantes sembrados) ──────────────
+
+    private void initMatriculas() {
+        if (matriculaRepository.count() > 0) return;
+
+        int anio = Year.now().getValue();
+        int creadas = 0;
+        for (Estudiante estudiante : estudianteRepository.findAll()) {
+            if (estudiante.getCurso() == null) continue;
+            matriculaRepository.save(Matricula.builder()
+                .estudiante(estudiante)
+                .curso(estudiante.getCurso())
+                .anio(anio)
+                .estado(EstadoMatricula.ACTIVA)
+                .build());
+            creadas++;
+        }
+        log.info("  → {} matrículas creadas (año {})", creadas, anio);
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

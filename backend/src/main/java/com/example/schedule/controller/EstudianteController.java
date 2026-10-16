@@ -23,11 +23,18 @@ public class EstudianteController {
     @GetMapping
     public Page<EstudianteResponse> findAll(
             @RequestParam(required = false) Long cursoId,
+            @RequestParam(required = false) Integer anio,
             Pageable pageable) {
         if (cursoId != null) {
-            return estudianteService.findByCurso(cursoId, pageable);
+            return estudianteService.findByCurso(cursoId, anio, pageable);
         }
         return estudianteService.findAll(pageable);
+    }
+
+    @GetMapping("/inactivos")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Page<EstudianteResponse> findInactivos(Pageable pageable) {
+        return estudianteService.findInactivos(pageable);
     }
 
     @GetMapping("/{id}")
@@ -49,5 +56,11 @@ public class EstudianteController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         estudianteService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/reactivar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public EstudianteResponse reactivar(@PathVariable Long id) {
+        return estudianteService.reactivar(id);
     }
 }
