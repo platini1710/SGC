@@ -15,4 +15,8 @@ public class FilaNotaDTO {
     private String nombreEstudiante;
     private List<NotaResponse> notas;
     private BigDecimal promedio;
+    private BigDecimal notaFinalT1;
+    private BigDecimal notaFinalT2;
+    private BigDecimal notaFinalT3;
+    private BigDecimal notaFinalAnual;
 }

@@ -65,6 +65,10 @@
                 <th style="text-align:center">N{{ p }}</th>
               }
               <th style="text-align:center">Promedio</th>
+              <th style="text-align:center">NF T1</th>
+              <th style="text-align:center">NF T2</th>
+              <th style="text-align:center">NF T3</th>
+              <th style="text-align:center">Nota Final</th>
             </tr>
           </thead>
           <tbody>
@@ -97,11 +101,31 @@
                     —
                   }
                 </td>
+                <td style="text-align:center">
+                  @if (fila.notaFinalT1 != null) {
+                    <span [ngClass]="claseNotaNum(fila.notaFinalT1)">{{ fila.notaFinalT1 | number:'1.1-1' }}</span>
+                  } @else { — }
+                </td>
+                <td style="text-align:center">
+                  @if (fila.notaFinalT2 != null) {
+                    <span [ngClass]="claseNotaNum(fila.notaFinalT2)">{{ fila.notaFinalT2 | number:'1.1-1' }}</span>
+                  } @else { — }
+                </td>
+                <td style="text-align:center">
+                  @if (fila.notaFinalT3 != null) {
+                    <span [ngClass]="claseNotaNum(fila.notaFinalT3)">{{ fila.notaFinalT3 | number:'1.1-1' }}</span>
+                  } @else { — }
+                </td>
+                <td style="text-align:center">
+                  @if (fila.notaFinalAnual != null) {
+                    <span [ngClass]="claseNotaNum(fila.notaFinalAnual)">{{ fila.notaFinalAnual | number:'1.1-1' }}</span>
+                  } @else { — }
+                </td>
               </tr>
             }
             @empty {
               <tr>
-                <td [attr.colspan]="posiciones.length + 2" style="text-align:center;color:#757575">
+                <td [attr.colspan]="posiciones.length + 6" style="text-align:center;color:#757575">
                   No hay estudiantes en este curso
                 </td>
               </tr>

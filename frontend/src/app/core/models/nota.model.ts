@@ -9,6 +9,10 @@ export interface FilaNota {
   nombreEstudiante: string;
   notas: NotaResponse[];
   promedio: number | null;
+  notaFinalT1: number | null;
+  notaFinalT2: number | null;
+  notaFinalT3: number | null;
+  notaFinalAnual: number | null;
 }
 
 export interface GrillaNotas {

@@ -1,7 +1,9 @@
 package com.example.schedule.service;
 
+import com.example.schedule.dto.GrillaNotasResponse;
 import com.example.schedule.dto.NotaRequest;
 import com.example.schedule.exception.SchedulingException;
+import com.example.schedule.model.Asignatura;
 import com.example.schedule.model.Curso;
 import com.example.schedule.model.EstadoTrimestre;
 import com.example.schedule.model.Estudiante;
@@ -23,8 +25,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -108,5 +113,80 @@ class NotaServiceTest {
                 () -> notaService.guardar(request()));
 
         verify(notaRepository, never()).save(any());
+    }
+
+    @Test
+    void getGrilla_cadaFilaLlevaLasCuatroNotasFinales() {
+        Curso curso = Curso.builder().id(3L).nombre("1\u00b0 B\u00e1sico").build();
+        Asignatura asignatura = Asignatura.builder().id(2L).nombre("Matem\u00e1tica").build();
+        Trimestre t1 = Trimestre.builder().id(1L).numero(1).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+        Trimestre t2 = Trimestre.builder().id(2L).numero(2).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+        Trimestre t3 = Trimestre.builder().id(3L).numero(3).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+
+        when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
+        when(asignaturaRepository.findById(2L)).thenReturn(Optional.of(asignatura));
+        when(trimestreRepository.findById(1L)).thenReturn(Optional.of(t1));
+        when(matriculaRepository.findEstudiantesByCursoAndAnio(3L, 2025))
+                .thenReturn(List.of(estudiante()));
+        when(trimestreRepository.findByNumeroAndAnio(1, 2025)).thenReturn(Optional.of(t1));
+        when(trimestreRepository.findByNumeroAndAnio(2, 2025)).thenReturn(Optional.of(t2));
+        when(trimestreRepository.findByNumeroAndAnio(3, 2025)).thenReturn(Optional.of(t3));
+        when(notaRepository.findByEstudianteIdAndAsignaturaIdAndTrimestreId(5L, 2L, 1L))
+                .thenReturn(List.of());
+
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 1L)).thenReturn(new BigDecimal("5.5"));
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 2L)).thenReturn(new BigDecimal("6.0"));
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 3L)).thenReturn(new BigDecimal("6.5"));
+        when(calculoNotasService.notaFinalAnual(5L, 2L, 2025)).thenReturn(new BigDecimal("6.0"));
+
+        GrillaNotasResponse grilla = notaService.getGrilla(3L, 2L, 1L);
+
+        assertEquals(1, grilla.getFilas().size());
+        var fila = grilla.getFilas().get(0);
+        assertEquals(new BigDecimal("5.5"), fila.getNotaFinalT1());
+        assertEquals(new BigDecimal("6.0"), fila.getNotaFinalT2());
+        assertEquals(new BigDecimal("6.5"), fila.getNotaFinalT3());
+        assertEquals(new BigDecimal("6.0"), fila.getNotaFinalAnual());
+    }
+
+    @Test
+    void getGrilla_notaFinalAnualEsNullCuandoFaltaUnTrimestre() {
+        Curso curso = Curso.builder().id(3L).nombre("1\u00b0 B\u00e1sico").build();
+        Asignatura asignatura = Asignatura.builder().id(2L).nombre("Matem\u00e1tica").build();
+        Trimestre t1 = Trimestre.builder().id(1L).numero(1).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+        Trimestre t2 = Trimestre.builder().id(2L).numero(2).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+        Trimestre t3 = Trimestre.builder().id(3L).numero(3).anio(2025)
+                .estado(EstadoTrimestre.ABIERTO).build();
+
+        when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
+        when(asignaturaRepository.findById(2L)).thenReturn(Optional.of(asignatura));
+        when(trimestreRepository.findById(1L)).thenReturn(Optional.of(t1));
+        when(matriculaRepository.findEstudiantesByCursoAndAnio(3L, 2025))
+                .thenReturn(List.of(estudiante()));
+        when(trimestreRepository.findByNumeroAndAnio(1, 2025)).thenReturn(Optional.of(t1));
+        when(trimestreRepository.findByNumeroAndAnio(2, 2025)).thenReturn(Optional.of(t2));
+        when(trimestreRepository.findByNumeroAndAnio(3, 2025)).thenReturn(Optional.of(t3));
+        when(notaRepository.findByEstudianteIdAndAsignaturaIdAndTrimestreId(5L, 2L, 1L))
+                .thenReturn(List.of());
+
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 1L)).thenReturn(new BigDecimal("5.5"));
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 2L)).thenReturn(new BigDecimal("6.0"));
+        // T3 sin notas.
+        when(calculoNotasService.promedioTrimestre(5L, 2L, 3L)).thenReturn(null);
+        // Anual null porque falta un trimestre con notas.
+        when(calculoNotasService.notaFinalAnual(5L, 2L, 2025)).thenReturn(null);
+
+        GrillaNotasResponse grilla = notaService.getGrilla(3L, 2L, 1L);
+
+        var fila = grilla.getFilas().get(0);
+        assertEquals(new BigDecimal("5.5"), fila.getNotaFinalT1());
+        assertEquals(new BigDecimal("6.0"), fila.getNotaFinalT2());
+        assertNull(fila.getNotaFinalT3());
+        assertNull(fila.getNotaFinalAnual());
     }
 }

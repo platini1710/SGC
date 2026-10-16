@@ -40,8 +40,15 @@ public class NotaService {
         Trimestre trimestre = getTrimestre(trimestreId);
 
         // Alumnos del curso según la matrícula del año del trimestre (sin matrículas → filas vacío).
+        int anio = trimestre.getAnio();
         List<Estudiante> estudiantes =
-                matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, trimestre.getAnio());
+                matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, anio);
+
+        // Ids de los tres trimestres del año (null si alguno no existe), con la misma
+        // búsqueda que usa getConsolidado.
+        Long t1Id = trimestreId(1, anio);
+        Long t2Id = trimestreId(2, anio);
+        Long t3Id = trimestreId(3, anio);
 
         List<FilaNotaDTO> filas = estudiantes.stream()
                 .map(estudiante -> {
@@ -58,6 +65,11 @@ public class NotaService {
                             .notas(notas)
                             .promedio(calculoNotasService.promedioTrimestre(
                                     estudiante.getId(), asignaturaId, trimestreId))
+                            .notaFinalT1(promedio(estudiante.getId(), asignaturaId, t1Id))
+                            .notaFinalT2(promedio(estudiante.getId(), asignaturaId, t2Id))
+                            .notaFinalT3(promedio(estudiante.getId(), asignaturaId, t3Id))
+                            .notaFinalAnual(calculoNotasService.notaFinalAnual(
+                                    estudiante.getId(), asignaturaId, anio))
                             .build();
                 })
                 .toList();
