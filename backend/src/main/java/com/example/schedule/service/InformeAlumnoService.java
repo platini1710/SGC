@@ -12,6 +12,7 @@ import com.example.schedule.repository.ColegioRepository;
 import com.example.schedule.repository.CursoAsignaturaRepository;
 import com.example.schedule.repository.CursoRepository;
 import com.example.schedule.repository.EstudianteRepository;
+import com.example.schedule.repository.MatriculaRepository;
 import com.example.schedule.repository.NotaRepository;
 import com.example.schedule.repository.TrimestreRepository;
 import com.example.schedule.security.NotaAccessChecker;
@@ -61,6 +62,7 @@ public class InformeAlumnoService {
     private final CalculoNotasService calculoNotasService;
     private final ColegioRepository colegioRepository;
     private final NotaAccessChecker notaAccessChecker;
+    private final MatriculaRepository matriculaRepository;
 
     public byte[] generarBoletin(Long cursoId, Long trimestreId, Long estudianteId) {
         notaAccessChecker.verificarCurso(cursoId);
@@ -70,18 +72,24 @@ public class InformeAlumnoService {
         Trimestre trimestre = trimestreRepository.findById(trimestreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Trimestre no encontrado con id: " + trimestreId));
 
+        int anio = trimestre.getAnio();
+
         List<Estudiante> alumnos;
         if (estudianteId != null) {
             Estudiante estudiante = estudianteRepository.findById(estudianteId)
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Estudiante no encontrado con id: " + estudianteId));
-            if (estudiante.getCurso() == null || !cursoId.equals(estudiante.getCurso().getId())) {
+            Long cursoDelAlumno = matriculaRepository.findByEstudianteIdAndAnio(estudianteId, anio)
+                    .map(m -> m.getCurso() != null ? m.getCurso().getId() : null)
+                    .orElseGet(() -> estudiante.getCurso() != null ? estudiante.getCurso().getId() : null);
+            if (cursoDelAlumno == null || !cursoId.equals(cursoDelAlumno)) {
                 throw new ResourceNotFoundException(
-                        "El estudiante " + estudianteId + " no pertenece al curso " + cursoId);
+                        "El estudiante " + estudianteId + " no pertenece al curso " + cursoId
+                                + " en el a\u00f1o " + anio);
             }
             alumnos = List.of(estudiante);
         } else {
-            alumnos = estudianteRepository.findByCursoIdOrderByApellidoAscNombreAsc(cursoId);
+            alumnos = matriculaRepository.findEstudiantesByCursoAndAnio(cursoId, anio);
         }
 
         List<CursoAsignatura> asignaturas = new ArrayList<>(
@@ -335,7 +343,21 @@ public class InformeAlumnoService {
     }
 
     private String nombreCompletoEstudiante(Estudiante estudiante) {
-        return unirNombre(estudiante.getNombre(), estudiante.getApellido());
+        return unirNombre(estudiante.getNombre(), apellidosEstudiante(estudiante));
+    }
+
+    private String apellidosEstudiante(Estudiante estudiante) {
+        StringBuilder sb = new StringBuilder();
+        if (estudiante.getApellidoPaterno() != null && !estudiante.getApellidoPaterno().isBlank()) {
+            sb.append(estudiante.getApellidoPaterno().trim());
+        }
+        if (estudiante.getApellidoMaterno() != null && !estudiante.getApellidoMaterno().isBlank()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(estudiante.getApellidoMaterno().trim());
+        }
+        return sb.toString();
     }
 
     private String nombreProfesorJefe(Curso curso) {

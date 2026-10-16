@@ -22,6 +22,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
@@ -45,6 +46,8 @@ class ReporteServiceTest {
     private CursoRepository cursoRepository;
     @Mock
     private AsignaturaRepository asignaturaRepository;
+    @Mock
+    private AnioEscolarService anioEscolarService;
 
     @InjectMocks
     private ReporteService reporteService;
@@ -74,10 +77,11 @@ class ReporteServiceTest {
         lenient().when(colegioRepository.findTopByOrderByIdAsc()).thenReturn(Optional.empty());
         lenient().when(cursoRepository.findById(anyLong())).thenReturn(Optional.empty());
         lenient().when(asignaturaRepository.findById(anyLong())).thenReturn(Optional.empty());
+        lenient().when(anioEscolarService.resolver(any())).thenReturn(2025);
         when(notaService.getConsolidado(anyLong(), anyLong(), anyInt()))
                 .thenReturn(ConsolidadoAnualResponse.builder().filas(List.of()).build());
 
-        byte[] pdf = reporteService.generarPdf(1L, 2L, null);
+        byte[] pdf = reporteService.generarPdf(1L, 2L, null, null);
 
         verify(notaAccessChecker).verificar(1L, 2L);
         assertTrue(pdf.length > 0, "El PDF debe generarse aun sin notas");

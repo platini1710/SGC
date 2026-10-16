@@ -3,9 +3,11 @@ package com.example.schedule.service;
 import com.example.schedule.exception.ResourceNotFoundException;
 import com.example.schedule.model.Apoderado;
 import com.example.schedule.model.Colegio;
+import com.example.schedule.model.Curso;
 import com.example.schedule.model.Estudiante;
 import com.example.schedule.repository.ColegioRepository;
 import com.example.schedule.repository.EstudianteRepository;
+import com.example.schedule.repository.MatriculaRepository;
 import com.example.schedule.security.NotaAccessChecker;
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -46,14 +48,22 @@ public class FichaAlumnoService {
     private final EstudianteRepository estudianteRepository;
     private final ColegioRepository colegioRepository;
     private final NotaAccessChecker notaAccessChecker;
+    private final MatriculaRepository matriculaRepository;
+    private final AnioEscolarService anioEscolarService;
 
     public byte[] generarFicha(Long estudianteId) {
         Estudiante estudiante = estudianteRepository.findById(estudianteId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Estudiante no encontrado con id: " + estudianteId));
 
-        notaAccessChecker.verificarCurso(
-                estudiante.getCurso() != null ? estudiante.getCurso().getId() : null);
+        // El curso mostrado en la ficha es el de la matrícula del año activo,
+        // con caída al espejo estudiante.getCurso() si no hay matrícula.
+        int anioActivo = anioEscolarService.resolver(null);
+        Curso curso = matriculaRepository.findByEstudianteIdAndAnio(estudianteId, anioActivo)
+                .map(m -> m.getCurso())
+                .orElseGet(estudiante::getCurso);
+
+        notaAccessChecker.verificarCurso(curso != null ? curso.getId() : null);
 
         Colegio colegio = colegioRepository.findTopByOrderByIdAsc().orElse(null);
 
@@ -62,7 +72,7 @@ public class FichaAlumnoService {
         PdfWriter.getInstance(document, out);
         document.open();
         try {
-            escribirFicha(document, colegio, estudiante);
+            escribirFicha(document, colegio, estudiante, curso);
         } catch (Exception e) {
             throw new IllegalStateException("Error generando la ficha PDF", e);
         } finally {
@@ -71,7 +81,8 @@ public class FichaAlumnoService {
         return out.toByteArray();
     }
 
-    private void escribirFicha(Document document, Colegio colegio, Estudiante estudiante) throws Exception {
+    private void escribirFicha(Document document, Colegio colegio, Estudiante estudiante, Curso curso)
+            throws Exception {
         // Encabezado: izquierda logo + nombre del colegio; derecha recuadro foto.
         PdfPTable encabezado = new PdfPTable(2);
         encabezado.setWidthPercentage(100);
@@ -93,16 +104,19 @@ public class FichaAlumnoService {
         }
         encabezado.addCell(izq);
 
-        // Recuadro FOTOGRAFIA DEL ALUMNO.
+        // Recuadro FOTOGRAFIA DEL ALUMNO (tamaño fijo tipo carné).
         PdfPCell fotoCell = new PdfPCell();
         fotoCell.setHorizontalAlignment(Element.ALIGN_CENTER);
         fotoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        fotoCell.setMinimumHeight(120f);
-        fotoCell.setPadding(4f);
+        fotoCell.setFixedHeight(130f);
+        fotoCell.setPadding(3f);
         Image foto = cargarFoto(estudiante.getFoto());
         if (foto != null) {
-            foto.scaleToFit(90, 110);
-            fotoCell.addElement(new com.lowagie.text.Chunk(foto, 0, 0));
+            // La imagen llena la celda (centrada y ajustada), como foto de carné.
+            foto.scaleToFit(110, 124);
+            fotoCell.setImage(foto);
+            fotoCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            fotoCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         } else {
             Paragraph texto = new Paragraph("FOTOGRAFÍA DEL ALUMNO",
                     FontFactory.getFont(FontFactory.HELVETICA, 8, Color.DARK_GRAY));
@@ -123,7 +137,7 @@ public class FichaAlumnoService {
         // Sección I: Identificación.
         document.add(barraTitulo("I. IDENTIFICACIÓN DEL ALUMNO"));
         PdfPTable identificacion = tablaDatos();
-        agregarDato(identificacion, "Apellidos", valor(estudiante.getApellido()));
+        agregarDato(identificacion, "Apellidos", valor(apellidosEstudiante(estudiante)));
         agregarDato(identificacion, "Nombres", valor(estudiante.getNombre()));
         agregarDato(identificacion, "RUN / DNI", valor(estudiante.getRut()));
         agregarDato(identificacion, "Fecha de Nacimiento",
@@ -137,7 +151,7 @@ public class FichaAlumnoService {
         agregarDato(identificacion, "Teléfono", valor(estudiante.getTelefono()));
         agregarDato(identificacion, "Domicilio", valor(estudiante.getDomicilio()));
         agregarDato(identificacion, "Curso",
-                estudiante.getCurso() != null ? valor(estudiante.getCurso().getNombre()) : SIN_DATO);
+                curso != null ? valor(curso.getNombre()) : SIN_DATO);
         document.add(identificacion);
 
         // Sección II: Antecedentes familiares.
@@ -201,6 +215,20 @@ public class FichaAlumnoService {
         return sb.length() == 0 ? SIN_DATO : sb.toString();
     }
 
+    private String apellidosEstudiante(Estudiante estudiante) {
+        StringBuilder sb = new StringBuilder();
+        if (estudiante.getApellidoPaterno() != null && !estudiante.getApellidoPaterno().isBlank()) {
+            sb.append(estudiante.getApellidoPaterno().trim());
+        }
+        if (estudiante.getApellidoMaterno() != null && !estudiante.getApellidoMaterno().isBlank()) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(estudiante.getApellidoMaterno().trim());
+        }
+        return sb.toString();
+    }
+
     private String valor(String texto) {
         return (texto != null && !texto.isBlank()) ? texto : SIN_DATO;
     }
@@ -238,9 +266,14 @@ public class FichaAlumnoService {
             if (coma < 0) {
                 return null;
             }
-            byte[] bytes = Base64.getDecoder().decode(foto.substring(coma + 1).trim());
+            // Usa el decoder MIME (tolerante a saltos de línea/espacios en el Base64)
+            // y limpia cualquier whitespace residual del payload.
+            String payload = foto.substring(coma + 1).replaceAll("\\s", "");
+            byte[] bytes = java.util.Base64.getMimeDecoder().decode(payload);
             return Image.getInstance(bytes);
-        } catch (Exception ignore) {
+        } catch (Exception e) {
+            // Deja rastro del motivo real en lugar de tragarlo en silencio.
+            System.err.println("No se pudo incrustar la foto del alumno en la ficha: " + e);
             return null;
         }
     }

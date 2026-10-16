@@ -6,7 +6,9 @@ import com.example.schedule.model.Trimestre;
 import com.example.schedule.repository.ColegioRepository;
 import com.example.schedule.repository.CursoAsignaturaRepository;
 import com.example.schedule.repository.CursoRepository;
+import com.example.schedule.model.Matricula;
 import com.example.schedule.repository.EstudianteRepository;
+import com.example.schedule.repository.MatriculaRepository;
 import com.example.schedule.repository.NotaRepository;
 import com.example.schedule.repository.TrimestreRepository;
 import com.example.schedule.security.NotaAccessChecker;
@@ -46,6 +48,8 @@ class InformeAlumnoServiceTest {
     private ColegioRepository colegioRepository;
     @Mock
     private NotaAccessChecker notaAccessChecker;
+    @Mock
+    private MatriculaRepository matriculaRepository;
 
     @InjectMocks
     private InformeAlumnoService informeAlumnoService;
@@ -62,7 +66,7 @@ class InformeAlumnoServiceTest {
     }
 
     private Estudiante estudiante(Long id, Curso curso) {
-        return Estudiante.builder().id(id).nombre("Ana").apellido("P\u00e9rez").curso(curso).build();
+        return Estudiante.builder().id(id).nombre("Ana").apellidoPaterno("P\u00e9rez").curso(curso).build();
     }
 
     @Test
@@ -70,7 +74,7 @@ class InformeAlumnoServiceTest {
         Curso curso = curso(1L);
         lenient().when(cursoRepository.findById(1L)).thenReturn(Optional.of(curso));
         lenient().when(trimestreRepository.findById(1L)).thenReturn(Optional.of(trimestre(1L)));
-        lenient().when(estudianteRepository.findByCursoIdOrderByApellidoAscNombreAsc(1L))
+        lenient().when(matriculaRepository.findEstudiantesByCursoAndAnio(1L, 2025))
                 .thenReturn(List.of());
         lenient().when(cursoAsignaturaRepository.findByCursoId(1L)).thenReturn(List.of());
         lenient().when(colegioRepository.findTopByOrderByIdAsc()).thenReturn(Optional.empty());
@@ -86,6 +90,8 @@ class InformeAlumnoServiceTest {
         when(cursoRepository.findById(1L)).thenReturn(Optional.of(curso));
         when(trimestreRepository.findById(1L)).thenReturn(Optional.of(trimestre(1L)));
         when(estudianteRepository.findById(5L)).thenReturn(Optional.of(estudiante(5L, curso)));
+        when(matriculaRepository.findByEstudianteIdAndAnio(5L, 2025))
+                .thenReturn(Optional.of(Matricula.builder().curso(curso).anio(2025).build()));
         when(cursoAsignaturaRepository.findByCursoId(1L)).thenReturn(List.of());
         when(colegioRepository.findTopByOrderByIdAsc()).thenReturn(Optional.empty());
 
@@ -99,14 +105,14 @@ class InformeAlumnoServiceTest {
         Curso curso = curso(1L);
         when(cursoRepository.findById(1L)).thenReturn(Optional.of(curso));
         when(trimestreRepository.findById(1L)).thenReturn(Optional.of(trimestre(1L)));
-        when(estudianteRepository.findByCursoIdOrderByApellidoAscNombreAsc(1L))
+        when(matriculaRepository.findEstudiantesByCursoAndAnio(1L, 2025))
                 .thenReturn(List.of(estudiante(1L, curso), estudiante(2L, curso)));
         when(cursoAsignaturaRepository.findByCursoId(1L)).thenReturn(List.of());
         when(colegioRepository.findTopByOrderByIdAsc()).thenReturn(Optional.empty());
 
         byte[] pdf = informeAlumnoService.generarBoletin(1L, 1L, null);
 
-        verify(estudianteRepository).findByCursoIdOrderByApellidoAscNombreAsc(1L);
+        verify(matriculaRepository).findEstudiantesByCursoAndAnio(1L, 2025);
         assertTrue(pdf.length > 0);
     }
 

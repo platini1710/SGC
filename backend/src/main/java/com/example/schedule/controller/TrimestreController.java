@@ -20,6 +20,17 @@ public class TrimestreController {
         return trimestreService.findByAnio(anio);
     }
 
+    @GetMapping("/anios")
+    public List<Integer> findAnios() {
+        return trimestreService.findDistinctAnios();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/anio/{anio}")
+    public List<TrimestreResponse> crearTrimestresDeAnio(@PathVariable int anio) {
+        return trimestreService.crearTrimestresDeAnio(anio);
+    }
+
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}/abrir")
     public TrimestreResponse abrir(@PathVariable Long id) {

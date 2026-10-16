@@ -33,7 +33,6 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.Year;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.HashMap;
@@ -57,13 +56,14 @@ public class ReporteService {
     private final TrimestreRepository trimestreRepository;
     private final CursoRepository cursoRepository;
     private final AsignaturaRepository asignaturaRepository;
+    private final AnioEscolarService anioEscolarService;
 
-    public byte[] generarPdf(Long cursoId, Long asignaturaId, Long trimestreId) {
+    public byte[] generarPdf(Long cursoId, Long asignaturaId, Long trimestreId, Integer anio) {
         notaAccessChecker.verificar(cursoId, asignaturaId);
         if (trimestreId != null) {
             return generarPorTrimestre(cursoId, asignaturaId, trimestreId);
         }
-        return generarAnual(cursoId, asignaturaId);
+        return generarAnual(cursoId, asignaturaId, anio);
     }
 
     private byte[] generarPorTrimestre(Long cursoId, Long asignaturaId, Long trimestreId) {
@@ -101,14 +101,14 @@ public class ReporteService {
         });
     }
 
-    private byte[] generarAnual(Long cursoId, Long asignaturaId) {
-        int anio = Year.now().getValue();
-        ConsolidadoAnualResponse consolidado = notaService.getConsolidado(cursoId, asignaturaId, anio);
+    private byte[] generarAnual(Long cursoId, Long asignaturaId, Integer anio) {
+        int anioEfectivo = anioEscolarService.resolver(anio);
+        ConsolidadoAnualResponse consolidado = notaService.getConsolidado(cursoId, asignaturaId, anioEfectivo);
 
         String nombreCurso = cursoRepository.findById(cursoId).map(Curso::getNombre).orElse(SIN_DATO);
         String nombreAsignatura =
                 asignaturaRepository.findById(asignaturaId).map(Asignatura::getNombre).orElse(SIN_DATO);
-        String subtitulo = subtitulo(nombreCurso, nombreAsignatura, "Todos los trimestres", anio);
+        String subtitulo = subtitulo(nombreCurso, nombreAsignatura, "Todos los trimestres", anioEfectivo);
 
         String[] headers = {"Estudiante", "T1", "T2", "T3", "NF"};
         float[] widths = {4f, 1f, 1f, 1f, 1f};

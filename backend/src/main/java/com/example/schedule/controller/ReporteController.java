@@ -29,11 +29,13 @@ public class ReporteController {
     public ResponseEntity<byte[]> reporteNotasPdf(
             @RequestParam Long cursoId,
             @RequestParam Long asignaturaId,
-            @RequestParam(required = false) Long trimestreId) {
+            @RequestParam(required = false) Long trimestreId,
+            @RequestParam(required = false) Integer anio) {
 
-        byte[] pdf = reporteService.generarPdf(cursoId, asignaturaId, trimestreId);
+        byte[] pdf = reporteService.generarPdf(cursoId, asignaturaId, trimestreId, anio);
 
-        String periodo = trimestreId != null ? "T" + trimestreId : "anual";
+        String periodo = trimestreId != null ? "T" + trimestreId
+                : (anio != null ? String.valueOf(anio) : "actual");
         String filename = "reporte-notas-" + cursoId + "-" + asignaturaId + "-" + periodo + ".pdf";
 
         return ResponseEntity.ok()

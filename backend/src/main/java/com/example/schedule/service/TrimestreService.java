@@ -24,6 +24,26 @@ public class TrimestreService {
                 .toList();
     }
 
+    public List<Integer> findDistinctAnios() {
+        return trimestreRepository.findDistinctAnios();
+    }
+
+    // Crea (idempotentemente) los 3 trimestres del año indicado en estado CERRADO.
+    // No abre ningún trimestre: la invariante de "a lo sumo uno ABIERTO" la gestiona abrir().
+    @org.springframework.transaction.annotation.Transactional
+    public List<TrimestreResponse> crearTrimestresDeAnio(int anio) {
+        for (int numero = 1; numero <= 3; numero++) {
+            if (trimestreRepository.findByNumeroAndAnio(numero, anio).isEmpty()) {
+                trimestreRepository.save(Trimestre.builder()
+                        .numero(numero)
+                        .anio(anio)
+                        .estado(EstadoTrimestre.CERRADO)
+                        .build());
+            }
+        }
+        return findByAnio(anio);
+    }
+
     // Solo puede haber un trimestre abierto a la vez por año: al abrir uno,
     // los demás del mismo año se cierran automáticamente.
     @org.springframework.transaction.annotation.Transactional
