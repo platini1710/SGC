@@ -13,6 +13,7 @@
           <tr>
             <th>Nombre</th>
             <th>Nivel</th>
+            <th>Profesor Jefe</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -21,13 +22,14 @@
             <tr>
               <td>{{ c.nombre }}</td>
               <td>{{ c.nivel }}</td>
+              <td>{{ c.profesorJefe ?? '—' }}</td>
               <td class="acciones">
-                <button class="btn btn-primary btn-sm" (click)="gestionar(c)">Gestionar Asignaturas</button>
+                <button class="btn btn-primary btn-sm" (click)="gestionar(c)">Gestionar</button>
               </td>
             </tr>
           }
           @empty {
-            <tr><td colspan="3" style="text-align:center;color:#757575">No hay cursos registrados</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:#757575">No hay cursos registrados</td></tr>
           }
         </tbody>
       </table>
@@ -37,12 +39,30 @@
   @if (cursoSeleccionado) {
     <div class="card">
       <div class="flex items-center justify-between mb-16">
-        <h3 style="margin-bottom:0">Asignaturas de {{ cursoSeleccionado.nombre }}</h3>
+        <h3 style="margin-bottom:0">{{ cursoSeleccionado.nombre }}</h3>
+        <button class="btn btn-secondary btn-sm" (click)="cerrarPanel()">Cerrar</button>
+      </div>
+
+      <!-- Profesor Jefe -->
+      <div class="form-group" style="max-width:480px;margin-bottom:20px">
+        <label>Profesor Jefe</label>
+        <div class="flex gap-8">
+          <select [(ngModel)]="profesorJefeSeleccionado" style="flex:1">
+            <option [ngValue]="null">Sin asignar</option>
+            @for (p of profesores; track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }} {{ p.apellido }}</option>
+            }
+          </select>
+          <button class="btn btn-primary btn-sm" (click)="guardarProfesorJefe()">Guardar</button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mb-16">
+        <h3 style="margin-bottom:0;font-size:15px">Asignaturas</h3>
         <div class="flex gap-8">
           @if (!mostrarForm) {
             <button class="btn btn-primary btn-sm" (click)="abrirForm()">+ Asignar</button>
           }
-          <button class="btn btn-secondary btn-sm" (click)="cerrarPanel()">Cerrar</button>
         </div>
       </div>
 

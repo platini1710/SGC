@@ -1,6 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { CursoService } from '../../core/services/curso.service';
 import { AsignaturaService } from '../../core/services/asignatura.service';
 import { ProfesorService } from '../../core/services/profesor.service';
@@ -11,7 +11,7 @@ import { Profesor } from '../../core/models/profesor.model';
 @Component({
   selector: 'app-cursos-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './cursos-list.component.html',
   styleUrl: './cursos-list.component.scss'
 })
@@ -63,7 +63,7 @@ export class CursosListComponent implements OnInit {
 
   private cargarDetalle(cursoId: number): void {
     this.cursoService.getById(cursoId).subscribe({
-      next: (d) => (this.cursoSeleccionado = d),
+      next: (d) => { this.cursoSeleccionado = d; this.onDetalleCargado(d); },
       error: () => (this.errorMsg = 'Error cargando detalle del curso')
     });
   }
@@ -106,6 +106,27 @@ export class CursosListComponent implements OnInit {
     this.cursoService.removeAsignatura(cursoId, asignaturaId).subscribe({
       next: () => { this.mensajeOk = 'Asignatura quitada.'; this.cargarDetalle(cursoId); },
       error: () => (this.errorMsg = 'Error quitando asignatura')
+    });
+  }
+
+  // Profesor jefe seleccionado en el dropdown (ngModel).
+  profesorJefeSeleccionado: number | null = null;
+
+  // Al cargar el detalle, sincroniza el profesor jefe actual con el selector.
+  onDetalleCargado(d: CursoDetalle): void {
+    this.profesorJefeSeleccionado = d.profesorJefeId ?? null;
+  }
+
+  guardarProfesorJefe(): void {
+    if (!this.cursoSeleccionado) { return; }
+    const cursoId = this.cursoSeleccionado.id;
+    this.cursoService.asignarProfesorJefe(cursoId, this.profesorJefeSeleccionado).subscribe({
+      next: () => {
+        this.mensajeOk = 'Profesor jefe actualizado.';
+        this.cargarDetalle(cursoId);
+        this.cargar(); // refresca la lista (muestra el jefe en la tabla)
+      },
+      error: () => (this.errorMsg = 'Error asignando profesor jefe')
     });
   }
 }

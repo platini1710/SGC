@@ -43,12 +43,15 @@ export class ReportesComponent implements OnInit, OnDestroy {
   // 'todos' = reporte anual; o el id del trimestre específico.
   alcance: 'todos' | number = 'todos';
 
-  // Tipo de reporte: 'asignatura' (el existente) o 'alumno' (boletín por alumno).
-  tipoReporte: 'asignatura' | 'alumno' = 'asignatura';
+  // Tipo de reporte: 'asignatura' (el existente), 'alumno' (boletín por alumno)
+  // o 'certificado' (Certificado Anual de Estudios).
+  tipoReporte: 'asignatura' | 'alumno' | 'certificado' = 'asignatura';
   // Estado del modo "Informe por alumno".
   trimestreIdAlumno: number | null = null;
   estudianteId: number | null = null; // null = "Todos los alumnos del curso".
   estudiantesCurso: Estudiante[] = [];
+  // Año del certificado (default año actual).
+  anioCertificado: number = new Date().getFullYear();
 
   generando = false;
   errorMsg = '';
@@ -133,6 +136,54 @@ export class ReportesComponent implements OnInit, OnDestroy {
 
   get puedeGenerarAlumno(): boolean {
     return !this.generando && this.cursoId != null && this.trimestreIdAlumno != null;
+  }
+
+  // Modo "Certificado": al cambiar el curso, resetea el alumno y carga la lista.
+  onCursoCertificadoChange(): void {
+    this.errorMsg = '';
+    this.mensajeOk = '';
+    this.estudianteId = null;
+    this.estudiantesCurso = [];
+    if (this.cursoId == null) { return; }
+    this.cursoService.getEstudiantes(this.cursoId).subscribe({
+      next: (p) => (this.estudiantesCurso = p.content),
+      error: () => (this.errorMsg = 'Error cargando alumnos del curso')
+    });
+  }
+
+  get puedeGenerarCertificado(): boolean {
+    return !this.generando && this.cursoId != null;
+  }
+
+  // Genera el certificado anual y lo muestra embebido como vista previa.
+  generarCertificado(): void {
+    if (!this.puedeGenerarCertificado || this.cursoId == null) { return; }
+    this.generando = true;
+    this.errorMsg = '';
+    this.mensajeOk = '';
+    this.limpiarPreview();
+
+    const periodo = this.anioCertificado != null ? this.anioCertificado : 'actual';
+    const sufijo = this.estudianteId != null ? '-alumno' + this.estudianteId : '';
+    this.nombreArchivo = `certificado-estudios-curso${this.cursoId}-${periodo}${sufijo}.pdf`;
+
+    this.reporteService.descargarCertificado(this.cursoId, this.anioCertificado, this.estudianteId).subscribe({
+      next: (blob) => {
+        this.generando = false;
+        this.pdfBlob = blob;
+        this.pdfObjectUrl = window.URL.createObjectURL(blob);
+        this.pdfPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.pdfObjectUrl + '#view=FitH');
+        this.mensajeOk = 'Vista previa generada. Puede guardarla en disco con el botón "Descargar".';
+      },
+      error: (err: HttpErrorResponse) => {
+        this.generando = false;
+        if (err.status === 403) {
+          this.errorMsg = 'No tiene acceso a este curso.';
+        } else {
+          this.errorMsg = 'Error generando el certificado.';
+        }
+      }
+    });
   }
 
   // Genera el boletín por alumno y lo muestra embebido como vista previa.

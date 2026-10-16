@@ -11,7 +11,8 @@ import java.time.LocalDate;
 @Builder
 public class EstudianteRequest {
     private String nombre;
-    private String apellido;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
     private String rut;
     private LocalDate fechaNacimiento;
     private Long cursoId;

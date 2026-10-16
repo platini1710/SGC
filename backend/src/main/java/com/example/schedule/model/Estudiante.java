@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "estudiantes")
@@ -21,8 +22,11 @@ public class Estudiante {
     @Column(length = 100)
     private String nombre;
 
-    @Column(length = 100)
-    private String apellido;
+    @Column(name = "apellido_paterno", length = 100)
+    private String apellidoPaterno;
+
+    @Column(name = "apellido_materno", length = 100)
+    private String apellidoMaterno;
 
     @Column(unique = true, length = 20)
     private String rut;
@@ -36,6 +40,11 @@ public class Estudiante {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "apoderado_id")
     private Apoderado apoderado;
+
+    // Soft delete: "Eliminar" marca inactivo en vez de borrar. Solo se listan los activos.
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
 
     // ─── Identificación ──────────────────────────────────────────────────────
     @Column(length = 100)
@@ -100,4 +109,25 @@ public class Estudiante {
 
     @Column(length = 30)
     private String fonoEmergencia;
+
+    // ─── Auditoría ───────────────────────────────────────────────────────────
+    // Quién/cuándo modificó por última vez (create/update/reactivar).
+    @Column(name = "usuario_modificacion", length = 50)
+    private String usuarioModificacion;
+
+    @Column(name = "fecha_modificacion")
+    private LocalDate fechaModificacion;
+
+    @Column(name = "hora_modificacion")
+    private LocalTime horaModificacion;
+
+    // Quién/cuándo inactivó (soft delete). Se limpian a null al reactivar.
+    @Column(name = "inactivado_por", length = 50)
+    private String inactivadoPor;
+
+    @Column(name = "fecha_inactivacion")
+    private LocalDate fechaInactivacion;
+
+    @Column(name = "hora_inactivacion")
+    private LocalTime horaInactivacion;
 }

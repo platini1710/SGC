@@ -39,4 +39,9 @@ export class CursoService {
     return this.http.get<PageResponse<Estudiante>>(
       `${this.base}/api/cursos/${cursoId}/estudiantes`, { params });
   }
+
+  // Asigna (profesorId) o quita (null) el profesor jefe del curso.
+  asignarProfesorJefe(cursoId: number, profesorId: number | null): Observable<Curso> {
+    return this.http.put<Curso>(`${this.base}/api/cursos/${cursoId}/profesor-jefe`, { profesorId });
+  }
 }

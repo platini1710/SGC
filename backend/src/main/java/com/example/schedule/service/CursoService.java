@@ -33,12 +33,33 @@ public class CursoService {
         List<CursoAsignaturaResponse> asignaturas = cursoAsignaturaRepository.findByCursoId(id).stream()
                 .map(this::toCursoAsignaturaResponse)
                 .toList();
+        Long profesorJefeId = null;
+        String nombreProfesorJefe = null;
+        if (curso.getProfesorJefe() != null) {
+            profesorJefeId = curso.getProfesorJefe().getId();
+            nombreProfesorJefe = curso.getProfesorJefe().getNombre() + " " + curso.getProfesorJefe().getApellido();
+        }
         return CursoDetalleResponse.builder()
                 .id(curso.getId())
                 .nombre(curso.getNombre())
                 .nivel(curso.getNivel())
+                .profesorJefeId(profesorJefeId)
+                .nombreProfesorJefe(nombreProfesorJefe)
                 .asignaturas(asignaturas)
                 .build();
+    }
+
+    // Asigna (o quita, si profesorId es null) el profesor jefe del curso.
+    public CursoResponse asignarProfesorJefe(Long cursoId, Long profesorId) {
+        Curso curso = getById(cursoId);
+        if (profesorId == null) {
+            curso.setProfesorJefe(null);
+        } else {
+            Profesor profesor = profesorRepository.findById(profesorId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado con id: " + profesorId));
+            curso.setProfesorJefe(profesor);
+        }
+        return toResponse(cursoRepository.save(curso));
     }
 
     public CursoAsignaturaResponse asignarAsignatura(Long cursoId, CursoAsignaturaRequest request) {

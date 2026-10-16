@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Getter
 @Setter
@@ -13,6 +14,9 @@ import java.time.LocalDate;
 public class EstudianteResponse {
     private Long id;
     private String nombre;
+    private String apellidoPaterno;
+    private String apellidoMaterno;
+    // Derivado (apellidoPaterno [+ ' ' + apellidoMaterno]) para compatibilidad.
     private String apellido;
     private String rut;
 
@@ -49,4 +53,20 @@ public class EstudianteResponse {
     private String condicionMedica;
     private String contactoEmergencia;
     private String fonoEmergencia;
+
+    // Estado y auditoría
+    private Boolean activo;
+    private String usuarioModificacion;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate fechaModificacion;
+
+    private LocalTime horaModificacion;
+
+    private String inactivadoPor;
+
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate fechaInactivacion;
+
+    private LocalTime horaInactivacion;
 }

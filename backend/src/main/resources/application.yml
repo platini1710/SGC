@@ -16,6 +16,10 @@ spring:
         format_sql: true
 server:
   port: 8081
+  tomcat:
+    # Permite requests grandes (fotos en Base64 dentro del JSON). 15 MB.
+    max-http-form-post-size: 15MB
+    max-swallow-size: 15MB
 schedule:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:4201}

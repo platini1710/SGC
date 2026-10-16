@@ -6,6 +6,8 @@ export interface Curso {
 }
 
 export interface CursoDetalle extends Curso {
+  profesorJefeId?: number | null;
+  nombreProfesorJefe?: string | null;
   asignaturas: CursoAsignatura[];
 }
 

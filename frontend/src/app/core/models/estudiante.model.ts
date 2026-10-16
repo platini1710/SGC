@@ -1,7 +1,10 @@
 export interface Estudiante {
   id: number;
   nombre: string;
-  apellido: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
+  // Derivado (apellidoPaterno [+ ' ' + apellidoMaterno]) para compatibilidad.
+  apellido?: string;
   rut: string;
   fechaNacimiento?: string;
   cursoId?: number;
@@ -30,11 +33,20 @@ export interface Estudiante {
   condicionMedica?: string;
   contactoEmergencia?: string;
   fonoEmergencia?: string;
+  // Estado y auditoría
+  activo?: boolean;
+  usuarioModificacion?: string;
+  fechaModificacion?: string;
+  horaModificacion?: string;
+  inactivadoPor?: string;
+  fechaInactivacion?: string;
+  horaInactivacion?: string;
 }
 
 export interface EstudianteRequest {
   nombre: string;
-  apellido: string;
+  apellidoPaterno: string;
+  apellidoMaterno?: string;
   rut: string;
   fechaNacimiento?: string;
   cursoId?: number | null;

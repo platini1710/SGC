@@ -23,7 +23,16 @@ public class Colegio {
     private String region;
 
     @Column(length = 100)
+    private String provincia;
+
+    @Column(length = 100)
     private String comuna;
+
+    @Column(length = 50)
+    private String rbd;
+
+    @Column(length = 200)
+    private String decreto;
 
     @Column(length = 200)
     private String direccion;
