@@ -170,10 +170,18 @@ public class JecSchedulerService {
     private List<Unidad> construirUnidades(Curso curso) {
         List<CursoAsignatura> cargas = cursoAsignaturaRepository.findByCursoId(curso.getId());
 
+        // Ordena las cargas por nº de bloques completos descendente (MRV: la asignatura más
+        // demandante —p.ej. Lenguaje con 4 bloques— se coloca antes que las de 1 bloque). El
+        // desempate por id de asignatura mantiene el resultado determinista.
+        List<CursoAsignatura> cargasOrdenadas = new ArrayList<>(cargas);
+        cargasOrdenadas.sort(
+                Comparator.comparingInt((CursoAsignatura ca) -> ca.getHorasSemanales() / 2).reversed()
+                        .thenComparing(ca -> ca.getAsignatura().getId()));
+
         List<Unidad> completas = new ArrayList<>();
         List<Medio> medios = new ArrayList<>();
 
-        for (CursoAsignatura ca : cargas) {
+        for (CursoAsignatura ca : cargasOrdenadas) {
             if (ca.getProfesor() == null) {
                 throw new SchedulingException(
                         "El curso " + curso.getNombre() +

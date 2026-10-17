@@ -475,6 +475,7 @@ public class DataInitializer implements CommandLineRunner {
         Profesor martinez = findP(profesores, "Martínez");
         Profesor rodriguez= findP(profesores, "Rodríguez");
         Profesor soto     = findP(profesores, "Soto");
+        Profesor herrera  = findP(profesores, "Herrera");
         Profesor fuentes  = findP(profesores, "Fuentes");
         Profesor morales  = findP(profesores, "Morales");
         Profesor vega     = findP(profesores, "Vega");
@@ -482,29 +483,52 @@ public class DataInitializer implements CommandLineRunner {
         Profesor nunez    = findP(profesores, "Núñez");
         Profesor pinto    = findP(profesores, "Pinto");
 
+        // Reparto de docentes por curso para la jornada JEC de 1°-4°.
+        //
+        // La JEC comprime la semana en 19 bloques de 90' (Lun-Jue = 4, Vie = 3), compartidos
+        // por los 4 cursos de 1°-4° en una sola pasada de generación (el set profesorOcupado es
+        // común a los 4). Si un mismo docente dicta la misma asignatura pesada en los 4 cursos,
+        // acumula demasiados bloques de las 19 ranuras semanales y el backtracking se vuelve
+        // infactible/explosivo. Por eso se DISTRIBUYEN los docentes: cada curso recibe un docente
+        // DISTINTO para Lenguaje (4 bloques) y para Taller JEC (3 bloques), y las demás cargas
+        // pesadas (Matemática, Ed. Física) se reparten entre los 12 profesores de modo que la
+        // carga total de cada docente quede holgadamente por debajo de las 19 ranuras (máx. ~9).
+        // Todas las asignaturas pertenecen al plan 1°-4° (regla de membresía del plan respetada).
+        //
+        // Carga total resultante por docente (bloques/semana, ½ ocupa una ranura compartida):
+        //   López 4 · Castillo 8 · García 7 · Núñez 8 · Martínez 8 · Herrera 5 · Soto 7 ·
+        //   Rodríguez 9 · Pinto 8 · Fuentes 6 · Morales 8 · Vega 6.
+        //
+        //            | LEN | MAT | TAL | EF  | HIS | CN  | ART | MUS | REL | TEC | ORI
+        //  1° (niv1) | lop | mar | her | fue | sot | rod | mor | mor | veg | pin | veg
+        //  2° (niv2) | cas | nun | sot | fue | rod | pin | mor | mor | veg | mar | veg
+        //  3° (niv3) | gar | mar | rod | her | sot | pin | mor | mor | veg | nun | cas
+        //  4° (niv4) | nun | gar | pin | fue | cas | rod | mor | mor | veg | mar | cas
+        Profesor[] profLenPorNivel = { lopez,  castillo, garcia,   nunez  };
+        Profesor[] profMatPorNivel = { martinez, nunez,  martinez, garcia };
+        Profesor[] profTalPorNivel = { herrera, soto,    rodriguez, pinto };
+        Profesor[] profEfPorNivel  = { fuentes, fuentes, herrera,  fuentes };
+        Profesor[] profHisPorNivel = { soto,    rodriguez, soto,   castillo };
+        Profesor[] profCnPorNivel  = { rodriguez, pinto,  pinto,    rodriguez };
+        Profesor[] profTecPorNivel = { pinto,   martinez, nunez,   martinez };
+        Profesor[] profOriPorNivel = { vega,    vega,    castillo, castillo };
+
         for (Curso curso : cursoRepository.findAllByOrderByNivelAsc()) {
             int nivel = curso.getNivel();
             if (nivel > 4) continue;
+            int i = nivel - 1;   // índice 0..3 por nivel
 
-            Profesor profMat = switch (nivel % 3) {
-                case 0 -> garcia;
-                case 1 -> martinez;
-                default -> nunez;
-            };
-            Profesor profCn  = (nivel % 2 == 1) ? rodriguez : pinto;
-            Profesor profTec = (nivel % 2 == 1) ? martinez : pinto;
-
-            upsertCarga(curso, len, 8, lopez);
-            upsertCarga(curso, mat, 6, profMat);
-            upsertCarga(curso, tal, 6, castillo);
-            upsertCarga(curso, ef,  4, fuentes);
-            upsertCarga(curso, his, 3, soto);
-            upsertCarga(curso, cn,  3, profCn);
+            upsertCarga(curso, len, 8, profLenPorNivel[i]);
+            upsertCarga(curso, mat, 6, profMatPorNivel[i]);
+            upsertCarga(curso, tal, 6, profTalPorNivel[i]);
+            upsertCarga(curso, ef,  4, profEfPorNivel[i]);
+            upsertCarga(curso, his, 3, profHisPorNivel[i]);
+            upsertCarga(curso, cn,  3, profCnPorNivel[i]);
             upsertCarga(curso, art, 2, morales);
             upsertCarga(curso, mus, 2, morales);
             upsertCarga(curso, rel, 2, vega);
-            upsertCarga(curso, tec, 1, profTec);
-            upsertCarga(curso, ori, 1, vega);
+            upsertCarga(curso, tec, 1, profTecPorNivel[i]);
+            upsertCarga(curso, ori, 1, profOriPorNivel[i]);
         }
         log.info("  → Cargas JEC verificadas/actualizadas para cursos 1°-4°");
     }
