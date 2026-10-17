@@ -42,6 +42,20 @@ public class Horario {
     @JoinColumn(name = "bloque_id")
     private BloqueHorario bloque;
 
+    // Segundo subtramo opcional (medios bloques JEC): 2.ª asignatura/profesor que ocupa los
+    // segundos 45' de un bloque de 90'. Nulo en bloques completos (esMedioBloque=false).
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "asignatura_sec_id")
+    private Asignatura asignaturaSecundaria;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "profesor_sec_id")
+    private Profesor profesorSecundaria;
+
+    @Column(name = "es_medio_bloque", nullable = false)
+    @Builder.Default
+    private Boolean esMedioBloque = false;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean editadoManualmente = false;

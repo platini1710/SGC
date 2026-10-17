@@ -99,9 +99,17 @@ public class ProfesorService {
                 .nombreProfesor(h.getProfesor().getNombre() + " " + h.getProfesor().getApellido())
                 .diaSemana(h.getDiaSemana())
                 .bloqueId(h.getBloque().getId())
+                .bloqueNumero(h.getBloque().getNumero())
+                .jornada(h.getBloque().getJornada())
                 .horaInicio(h.getBloque().getHoraInicio())
                 .horaFin(h.getBloque().getHoraFin())
                 .editadoManualmente(h.getEditadoManualmente())
+                .esMedioBloque(Boolean.TRUE.equals(h.getEsMedioBloque()))
+                .asignaturaSecId(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getId() : null)
+                .nombreAsignaturaSec(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getNombre() : null)
+                .profesorSecId(h.getProfesorSecundaria() != null ? h.getProfesorSecundaria().getId() : null)
+                .nombreProfesorSec(h.getProfesorSecundaria() != null
+                        ? h.getProfesorSecundaria().getNombre() + " " + h.getProfesorSecundaria().getApellido() : null)
                 .build();
     }
 }

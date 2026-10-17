@@ -23,13 +23,44 @@ public class HorarioService {
     private final CursoRepository cursoRepository;
     private final ProfesorRepository profesorRepository;
     private final SchedulerService schedulerService;
+    private final JecSchedulerService jecSchedulerService;
     private final ConflictValidatorService conflictValidatorService;
     private final AuditoriaHelper auditoriaHelper;
 
+    @Transactional
     public List<HorarioResponse> generarHorario() {
-        return schedulerService.generarHorario().stream()
+        // Un único borrado preserva ediciones manuales antes de las dos pasadas.
+        horarioRepository.deleteByEditadoManualmenteFalse();
+        List<Horario> resultado = new ArrayList<>();
+        resultado.addAll(jecSchedulerService.colocarCursosJec());                       // nivel 1..4, bloques JEC
+        resultado.addAll(schedulerService.colocarCursosRegulares(
+                ca -> ca.getCurso().getNivel() != null && ca.getCurso().getNivel() >= 5)); // nivel >=5, bloques REGULAR
+        horarioRepository.saveAll(resultado);
+        return resultado.stream()
                 .map(this::toHorarioResponse)
                 .toList();
+    }
+
+    public List<BloqueDTO> listarBloques() {
+        return bloqueHorarioRepository.findAll().stream()
+                .sorted(Comparator
+                        .comparing((BloqueHorario b) -> b.getJornada() == null ? "" : b.getJornada())
+                        .thenComparing(b -> b.getNumero() == null ? 0 : b.getNumero()))
+                .map(this::toBloqueDTO)
+                .toList();
+    }
+
+    private BloqueDTO toBloqueDTO(BloqueHorario b) {
+        String jornada = b.getJornada();
+        return BloqueDTO.builder()
+                .id(b.getId())
+                .numero(b.getNumero())
+                .jornada(jornada)
+                .horaInicio(b.getHoraInicio())
+                .horaFin(b.getHoraFin())
+                .esRecreo(b.getEsRecreo())
+                .claveRender(jornada + "-" + b.getNumero())
+                .build();
     }
 
     public List<HorarioResponse> getHorarioCompleto() {
@@ -41,7 +72,8 @@ public class HorarioService {
     public GrillaHorarioResponse getGrillaCurso(Long cursoId) {
         Curso curso = cursoRepository.findById(cursoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id: " + cursoId));
-        List<BloqueHorario> bloques = bloqueHorarioRepository.findAllByOrderByNumeroAsc();
+        String jornada = (curso.getNivel() != null && curso.getNivel() <= 4) ? "JEC" : "REGULAR";
+        List<BloqueHorario> bloques = bloqueHorarioRepository.findByJornadaOrderByNumeroAsc(jornada);
         List<Horario> horarios = horarioRepository.findByCursoId(cursoId);
 
         Map<Integer, Map<Integer, HorarioCeldaDTO>> grilla = buildGrillaCurso(bloques, horarios);
@@ -50,6 +82,7 @@ public class HorarioService {
                 .cursoId(curso.getId())
                 .nombreCurso(curso.getNombre())
                 .grilla(grilla)
+                .bloques(bloques.stream().map(this::toBloqueDTO).toList())
                 .build();
     }
 
@@ -66,6 +99,7 @@ public class HorarioService {
                 int diaFinal = dia;
                 horarios.stream()
                         // null-safe: avoids NPE when diaSemana is null (finding #2)
+                        // Match por id de bloque (invariante real); el put usa numero.
                         .filter(h -> Integer.valueOf(diaFinal).equals(h.getDiaSemana())
                                 && h.getBloque().getId().equals(bloque.getId()))
                         .findFirst()
@@ -79,6 +113,12 @@ public class HorarioService {
                                     .nombreProfesor(h.getProfesor().getNombre() + " " + h.getProfesor().getApellido())
                                     .color(color)
                                     .nombreCurso(h.getCurso().getNombre())
+                                    .esMedioBloque(Boolean.TRUE.equals(h.getEsMedioBloque()))
+                                    .asignaturaSecId(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getId() : null)
+                                    .nombreAsignaturaSec(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getNombre() : null)
+                                    .profesorSecId(h.getProfesorSecundaria() != null ? h.getProfesorSecundaria().getId() : null)
+                                    .nombreProfesorSec(h.getProfesorSecundaria() != null
+                                            ? h.getProfesorSecundaria().getNombre() + " " + h.getProfesorSecundaria().getApellido() : null)
                                     .build());
                         });
             }
@@ -89,6 +129,7 @@ public class HorarioService {
                 .cursoId(null)
                 .nombreCurso(profesor.getNombre() + " " + profesor.getApellido())
                 .grilla(grilla)
+                .bloques(bloques.stream().map(this::toBloqueDTO).toList())
                 .build();
     }
 
@@ -147,6 +188,12 @@ public class HorarioService {
                                     .profesorId(h.getProfesor().getId())
                                     .nombreProfesor(h.getProfesor().getNombre() + " " + h.getProfesor().getApellido())
                                     .color(color)
+                                    .esMedioBloque(Boolean.TRUE.equals(h.getEsMedioBloque()))
+                                    .asignaturaSecId(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getId() : null)
+                                    .nombreAsignaturaSec(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getNombre() : null)
+                                    .profesorSecId(h.getProfesorSecundaria() != null ? h.getProfesorSecundaria().getId() : null)
+                                    .nombreProfesorSec(h.getProfesorSecundaria() != null
+                                            ? h.getProfesorSecundaria().getNombre() + " " + h.getProfesorSecundaria().getApellido() : null)
                                     .build());
                         });
             }
@@ -166,9 +213,17 @@ public class HorarioService {
                 .nombreProfesor(h.getProfesor().getNombre() + " " + h.getProfesor().getApellido())
                 .diaSemana(h.getDiaSemana())
                 .bloqueId(h.getBloque().getId())
+                .bloqueNumero(h.getBloque().getNumero())
+                .jornada(h.getBloque().getJornada())
                 .horaInicio(h.getBloque().getHoraInicio())
                 .horaFin(h.getBloque().getHoraFin())
                 .editadoManualmente(h.getEditadoManualmente())
+                .esMedioBloque(Boolean.TRUE.equals(h.getEsMedioBloque()))
+                .asignaturaSecId(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getId() : null)
+                .nombreAsignaturaSec(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getNombre() : null)
+                .profesorSecId(h.getProfesorSecundaria() != null ? h.getProfesorSecundaria().getId() : null)
+                .nombreProfesorSec(h.getProfesorSecundaria() != null
+                        ? h.getProfesorSecundaria().getNombre() + " " + h.getProfesorSecundaria().getApellido() : null)
                 .build();
     }
 }

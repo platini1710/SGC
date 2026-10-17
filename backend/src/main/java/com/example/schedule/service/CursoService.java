@@ -156,7 +156,11 @@ public class CursoService {
 
     public GrillaHorarioResponse getHorario(Long cursoId) {
         Curso curso = getById(cursoId);
-        List<BloqueHorario> bloques = bloqueHorarioRepository.findAllByOrderByNumeroAsc();
+        // Un curso tiene una sola jornada según su nivel (1..4 => JEC, >=5 => REGULAR).
+        // Cargamos SÓLO los bloques de esa jornada, de modo que el put por bloque.numero no
+        // colisione entre jornadas. El match sigue siendo por bloque.id (invariante real).
+        String jornada = (curso.getNivel() != null && curso.getNivel() <= 4) ? "JEC" : "REGULAR";
+        List<BloqueHorario> bloques = bloqueHorarioRepository.findByJornadaOrderByNumeroAsc(jornada);
         List<Horario> horarios = horarioRepository.findByCursoId(cursoId);
 
         Map<Integer, Map<Integer, HorarioCeldaDTO>> grilla = new HashMap<>();
@@ -177,6 +181,12 @@ public class CursoService {
                                     .profesorId(h.getProfesor().getId())
                                     .nombreProfesor(h.getProfesor().getNombre() + " " + h.getProfesor().getApellido())
                                     .color(color)
+                                    .esMedioBloque(Boolean.TRUE.equals(h.getEsMedioBloque()))
+                                    .asignaturaSecId(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getId() : null)
+                                    .nombreAsignaturaSec(h.getAsignaturaSecundaria() != null ? h.getAsignaturaSecundaria().getNombre() : null)
+                                    .profesorSecId(h.getProfesorSecundaria() != null ? h.getProfesorSecundaria().getId() : null)
+                                    .nombreProfesorSec(h.getProfesorSecundaria() != null
+                                            ? h.getProfesorSecundaria().getNombre() + " " + h.getProfesorSecundaria().getApellido() : null)
                                     .build());
                         });
             }
@@ -187,6 +197,20 @@ public class CursoService {
                 .cursoId(curso.getId())
                 .nombreCurso(curso.getNombre())
                 .grilla(grilla)
+                .bloques(bloques.stream().map(this::toBloqueDTO).toList())
+                .build();
+    }
+
+    private BloqueDTO toBloqueDTO(BloqueHorario b) {
+        String jornada = b.getJornada();
+        return BloqueDTO.builder()
+                .id(b.getId())
+                .numero(b.getNumero())
+                .jornada(jornada)
+                .horaInicio(b.getHoraInicio())
+                .horaFin(b.getHoraFin())
+                .esRecreo(b.getEsRecreo())
+                .claveRender(jornada + "-" + b.getNumero())
                 .build();
     }
 

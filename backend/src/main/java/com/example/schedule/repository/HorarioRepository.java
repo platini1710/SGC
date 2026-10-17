@@ -24,6 +24,8 @@ public interface HorarioRepository extends JpaRepository<Horario, Long> {
 
     boolean existsByProfesorIdAndDiaSemanaAndBloqueIdAndIdNot(Long profesorId, int diaSemana, Long bloqueId, Long id);
 
+    List<Horario> findByDiaSemanaAndBloqueId(int diaSemana, Long bloqueId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM Horario h WHERE h.editadoManualmente = false")

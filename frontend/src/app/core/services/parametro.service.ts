@@ -7,6 +7,12 @@ export interface Parametros {
   aproxNota: string;              // 'S' aproxima, otro trunca
   timeoutInactividad: number;     // segundos
   anioEscolarActivo: number;      // año escolar en curso
+  // Jornada Escolar Completa (JEC).
+  tipoJornada: string;            // "JEC" por ahora
+  duracionRecreo: number;         // minutos
+  horaInicioJornada: string;      // "HH:mm"
+  duracionBloqueMin: number;      // minutos (90 = 2 horas pedagógicas)
+  duracionAlmuerzo: number;       // minutos
 }
 
 @Injectable({ providedIn: 'root' })

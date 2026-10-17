@@ -24,49 +24,61 @@
   @if (grilla && !cargando) {
     <div class="card" style="overflow-x:auto">
       <h3 style="margin-bottom:12px">{{ grilla.nombreProfesor }}</h3>
-      <table class="horario-table">
-        <thead>
-          <tr>
-            <th style="width:110px">Bloque</th>
-            @for (dia of dias; track dia.num) {
-              <th>{{ dia.label }}</th>
-            }
-          </tr>
-        </thead>
-        <tbody>
-          @for (bloque of bloques; track bloque.numero) {
-            @if (bloque.esRecreo) {
-              <tr class="recreo-row">
-                <td>{{ bloque.hora }}</td>
-                <td colspan="5" style="text-align:center;color:#757575;font-style:italic;background:#f5f5f5">
-                  🍎 Recreo
-                </td>
-              </tr>
-            } @else {
-              <tr>
-                <td class="bloque-header">
-                  <div class="bloque-num">B{{ bloque.numero }}</div>
-                  <div class="bloque-hora">{{ bloque.hora }}</div>
-                </td>
-                @for (dia of dias; track dia.num) {
-                  <td class="celda-td">
-                    @if (getCelda(dia.num, bloque.numero); as celda) {
-                      <app-bloque-card
-                        [nombreAsignatura]="celda.nombreAsignatura"
-                        [nombreSecundario]="celda.nombreCurso ?? ''"
-                        [color]="celda.color"
-                        [editable]="false">
-                      </app-bloque-card>
-                    } @else {
-                      <span class="vacio">—</span>
-                    }
+      @for (seccion of secciones; track seccion.jornada) {
+        <h4 style="margin:12px 0 8px">{{ seccion.label }}</h4>
+        <table class="horario-table" style="margin-bottom:16px">
+          <thead>
+            <tr>
+              <th style="width:110px">Bloque</th>
+              @for (dia of dias; track dia.num) {
+                <th>{{ dia.label }}</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (bloque of seccion.bloques; track bloque.claveRender) {
+              @if (bloque.esRecreo) {
+                <tr class="recreo-row">
+                  <td>{{ bloque.horaInicio }}–{{ bloque.horaFin }}</td>
+                  <td colspan="5" style="text-align:center;color:#757575;font-style:italic;background:#f5f5f5">
+                    🍎 Recreo
                   </td>
-                }
-              </tr>
+                </tr>
+              } @else {
+                <tr>
+                  <td class="bloque-header">
+                    <div class="bloque-num">B{{ bloque.numero }}</div>
+                    <div class="bloque-hora">{{ bloque.horaInicio }}–{{ bloque.horaFin }}</div>
+                  </td>
+                  @for (dia of dias; track dia.num) {
+                    <td class="celda-td">
+                      @if (getCelda(dia.num, bloque.claveRender); as celda) {
+                        @if (celda.esMedioBloque) {
+                          <app-bloque-card
+                            [nombreAsignatura]="celda.nombreAsignatura + ' / ' + (celda.nombreAsignaturaSec ?? '')"
+                            [nombreSecundario]="celda.nombreCurso ?? ''"
+                            [color]="celda.color"
+                            [editable]="false">
+                          </app-bloque-card>
+                        } @else {
+                          <app-bloque-card
+                            [nombreAsignatura]="celda.nombreAsignatura"
+                            [nombreSecundario]="celda.nombreCurso ?? ''"
+                            [color]="celda.color"
+                            [editable]="false">
+                          </app-bloque-card>
+                        }
+                      } @else {
+                        <span class="vacio">—</span>
+                      }
+                    </td>
+                  }
+                </tr>
+              }
             }
-          }
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      }
     </div>
   }
 </div>

@@ -30,4 +30,9 @@ public class BloqueHorario {
     @Column(nullable = false)
     @Builder.Default
     private Boolean esRecreo = false;
+
+    // Discriminador de jornada: "REGULAR" (8 bloques de 45') | "JEC" (4 bloques de 90').
+    @Column(name = "jornada", length = 10, nullable = false)
+    @Builder.Default
+    private String jornada = "REGULAR";
 }

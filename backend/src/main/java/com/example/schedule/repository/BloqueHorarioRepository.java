@@ -10,4 +10,7 @@ import java.util.List;
 public interface BloqueHorarioRepository extends JpaRepository<BloqueHorario, Long> {
     List<BloqueHorario> findByEsRecreoFalseOrderByNumeroAsc();
     List<BloqueHorario> findAllByOrderByNumeroAsc();
+    List<BloqueHorario> findByJornadaAndEsRecreoFalseOrderByNumeroAsc(String jornada);
+    List<BloqueHorario> findByJornadaOrderByNumeroAsc(String jornada);
+    long countByJornada(String jornada);
 }

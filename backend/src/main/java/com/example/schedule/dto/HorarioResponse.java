@@ -28,4 +28,15 @@ public class HorarioResponse {
     private LocalTime horaFin;
 
     private Boolean editadoManualmente;
+
+    // Clave de bloque para el render (grilla del profesor cruza jornadas).
+    private Integer bloqueNumero;
+    private String jornada;
+
+    // Segundo subtramo opcional (medios bloques JEC).
+    private Long asignaturaSecId;
+    private String nombreAsignaturaSec;
+    private Long profesorSecId;
+    private String nombreProfesorSec;
+    private Boolean esMedioBloque;
 }

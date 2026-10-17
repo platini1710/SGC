@@ -4,21 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { HorarioService } from '../../../core/services/horario.service';
 import { ProfesorService } from '../../../core/services/profesor.service';
 import { Profesor } from '../../../core/models/profesor.model';
-import { GrillaHorario, HorarioCelda } from '../../../core/models/horario.model';
+import { BloqueInfo, GrillaHorario, HorarioCelda } from '../../../core/models/horario.model';
 import { BloqueCardComponent } from '../../../shared/bloque-card/bloque-card.component';
 
-interface BloqueInfo { numero: number; hora: string; esRecreo: boolean; }
-
-const BLOQUES: BloqueInfo[] = [
-  { numero: 1, hora: '08:00–08:45', esRecreo: false },
-  { numero: 2, hora: '08:45–09:30', esRecreo: false },
-  { numero: 3, hora: '09:30–10:15', esRecreo: false },
-  { numero: 4, hora: '10:15–10:45', esRecreo: true },
-  { numero: 5, hora: '10:45–11:30', esRecreo: false },
-  { numero: 6, hora: '11:30–12:15', esRecreo: false },
-  { numero: 7, hora: '12:15–13:00', esRecreo: false },
-  { numero: 8, hora: '13:00–13:45', esRecreo: false },
-];
+interface JornadaSeccion { jornada: string; label: string; bloques: BloqueInfo[]; }
 
 const DIAS = [
   { num: 1, label: 'Lunes' },
@@ -45,8 +34,18 @@ export class GrillaProfesorComponent implements OnInit {
   cargando = false;
   errorMsg = '';
 
-  bloques = BLOQUES;
   dias = DIAS;
+
+  // Secciones por jornada ("Jornada JEC" / "Jornada Regular"), derivadas del payload.
+  get secciones(): JornadaSeccion[] {
+    const bloques = this.grilla?.bloques ?? [];
+    const jec = bloques.filter((b) => b.jornada === 'JEC');
+    const regular = bloques.filter((b) => b.jornada === 'REGULAR');
+    const out: JornadaSeccion[] = [];
+    if (jec.length) { out.push({ jornada: 'JEC', label: 'Jornada JEC', bloques: jec }); }
+    if (regular.length) { out.push({ jornada: 'REGULAR', label: 'Jornada Regular', bloques: regular }); }
+    return out;
+  }
 
   ngOnInit(): void {
     this.profesorService.getAll().subscribe({
@@ -68,10 +67,11 @@ export class GrillaProfesorComponent implements OnInit {
     });
   }
 
-  getCelda(dia: number, bloque: number): HorarioCelda | null {
+  // Clave compuesta jornada-numero: el profesor cruza jornadas, así que numero no basta.
+  getCelda(dia: number, claveRender: string): HorarioCelda | null {
     if (!this.grilla) { return null; }
     const diaData = this.grilla.grilla[String(dia)];
     if (!diaData) { return null; }
-    return diaData[String(bloque)] ?? null;
+    return diaData[claveRender] ?? null;
   }
 }

@@ -48,6 +48,11 @@ public class DataInitializer implements CommandLineRunner {
         initAsignaturas();
         initPlanesEstudio();
         initCursoAsignaturas();
+        ensureAsignaturasJec();
+        ensurePlanJec();
+        ensureCargaJec();
+        ensureJornadaRegular();
+        ensureBloquesJec();
         initApoderados();
         initEstudiantes();
         initMatriculas();
@@ -406,6 +411,164 @@ public class DataInitializer implements CommandLineRunner {
             .build());
     }
 
+    // ─── Siembra JEC (idempotente) para 1° a 4° Básico ───────────────────────
+
+    // Crea las asignaturas JEC si faltan (Religión ya existe; Taller JEC es nueva).
+    private void ensureAsignaturasJec() {
+        ensureAsignatura("REL", "Religión", "Formación en valores y ética");
+        ensureAsignatura("TAL", "Taller JEC (Libre Disposición)", "Talleres de libre disposición JEC");
+    }
+
+    private Asignatura ensureAsignatura(String codigo, String nombre, String descripcion) {
+        return asignaturaRepository.findByCodigo(codigo).orElseGet(() -> {
+            Asignatura a = asignaturaRepository.save(Asignatura.builder()
+                .nombre(nombre)
+                .codigo(codigo)
+                .descripcion(descripcion)
+                .build());
+            log.info("  → Asignatura creada: {} ({})", nombre, codigo);
+            return a;
+        });
+    }
+
+    // Agrega Religión y Taller JEC al plan 1°-4° si no están (9 → 11 asignaturas).
+    private void ensurePlanJec() {
+        PlanEstudio plan1 = planEstudioRepository.findByNombre("Plan de Estudio 1° a 4° Básico")
+            .orElseThrow(() -> new IllegalStateException("Plan 1°-4° no encontrado"));
+        Asignatura rel = asignaturaRepository.findByCodigo("REL")
+            .orElseThrow(() -> new IllegalStateException("Asignatura REL no encontrada"));
+        Asignatura tal = asignaturaRepository.findByCodigo("TAL")
+            .orElseThrow(() -> new IllegalStateException("Asignatura TAL no encontrada"));
+        agregarAlPlanSiFalta(plan1, rel);
+        agregarAlPlanSiFalta(plan1, tal);
+    }
+
+    private void agregarAlPlanSiFalta(PlanEstudio plan, Asignatura asignatura) {
+        boolean presente = plan.getAsignaturas().stream()
+            .anyMatch(a -> a.getId().equals(asignatura.getId()));
+        if (!presente) {
+            plan.getAsignaturas().add(asignatura);
+            planEstudioRepository.save(plan);
+            log.info("  → Asignatura {} agregada al plan {}", asignatura.getCodigo(), plan.getNombre());
+        }
+    }
+
+    // Ajusta/crea las cargas JEC de cada curso 1°-4° (suma 38 horas pedagógicas).
+    private void ensureCargaJec() {
+        List<Asignatura> asignaturas = asignaturaRepository.findAll();
+        List<Profesor>   profesores  = profesorRepository.findAll();
+
+        Asignatura len  = findA(asignaturas, "Lenguaje y Comunicación");
+        Asignatura mat  = findA(asignaturas, "Matemática");
+        Asignatura cn   = findA(asignaturas, "Ciencias Naturales");
+        Asignatura his  = findA(asignaturas, "Historia, Geografía y Ciencias Sociales");
+        Asignatura ef   = findA(asignaturas, "Educación Física y Salud");
+        Asignatura art  = findA(asignaturas, "Artes Visuales");
+        Asignatura mus  = findA(asignaturas, "Música");
+        Asignatura ori  = findA(asignaturas, "Orientación");
+        Asignatura tec  = findA(asignaturas, "Tecnología");
+        Asignatura rel  = findA(asignaturas, "Religión");
+        Asignatura tal  = findA(asignaturas, "Taller JEC (Libre Disposición)");
+
+        Profesor garcia   = findP(profesores, "García");
+        Profesor lopez    = findP(profesores, "López");
+        Profesor martinez = findP(profesores, "Martínez");
+        Profesor rodriguez= findP(profesores, "Rodríguez");
+        Profesor soto     = findP(profesores, "Soto");
+        Profesor fuentes  = findP(profesores, "Fuentes");
+        Profesor morales  = findP(profesores, "Morales");
+        Profesor vega     = findP(profesores, "Vega");
+        Profesor castillo = findP(profesores, "Castillo");
+        Profesor nunez    = findP(profesores, "Núñez");
+        Profesor pinto    = findP(profesores, "Pinto");
+
+        for (Curso curso : cursoRepository.findAllByOrderByNivelAsc()) {
+            int nivel = curso.getNivel();
+            if (nivel > 4) continue;
+
+            Profesor profMat = switch (nivel % 3) {
+                case 0 -> garcia;
+                case 1 -> martinez;
+                default -> nunez;
+            };
+            Profesor profCn  = (nivel % 2 == 1) ? rodriguez : pinto;
+            Profesor profTec = (nivel % 2 == 1) ? martinez : pinto;
+
+            upsertCarga(curso, len, 8, lopez);
+            upsertCarga(curso, mat, 6, profMat);
+            upsertCarga(curso, tal, 6, castillo);
+            upsertCarga(curso, ef,  4, fuentes);
+            upsertCarga(curso, his, 3, soto);
+            upsertCarga(curso, cn,  3, profCn);
+            upsertCarga(curso, art, 2, morales);
+            upsertCarga(curso, mus, 2, morales);
+            upsertCarga(curso, rel, 2, vega);
+            upsertCarga(curso, tec, 1, profTec);
+            upsertCarga(curso, ori, 1, vega);
+        }
+        log.info("  → Cargas JEC verificadas/actualizadas para cursos 1°-4°");
+    }
+
+    // Crea la carga si falta o actualiza sus horas/profesor si cambiaron (idempotente).
+    private void upsertCarga(Curso curso, Asignatura asignatura, int horas, Profesor profesor) {
+        cursoAsignaturaRepository.findByCursoIdAndAsignaturaId(curso.getId(), asignatura.getId())
+            .ifPresentOrElse(ca -> {
+                boolean dirty = false;
+                if (ca.getHorasSemanales() != horas) { ca.setHorasSemanales(horas); dirty = true; }
+                if (ca.getProfesor() == null || !ca.getProfesor().getId().equals(profesor.getId())) {
+                    ca.setProfesor(profesor); dirty = true;
+                }
+                if (dirty) cursoAsignaturaRepository.save(ca);
+            }, () -> cursoAsignaturaRepository.save(CursoAsignatura.builder()
+                    .curso(curso)
+                    .asignatura(asignatura)
+                    .horasSemanales(horas)
+                    .profesor(profesor)
+                    .build()));
+    }
+
+    // Backfill de la columna jornada en los bloques REGULAR preexistentes (nacen NULL con
+    // ddl-auto=update). No toca id/numero/tiempos/esRecreo.
+    private void ensureJornadaRegular() {
+        int actualizados = 0;
+        for (BloqueHorario b : bloqueHorarioRepository.findAll()) {
+            if (b.getJornada() == null) {
+                b.setJornada("REGULAR");
+                bloqueHorarioRepository.save(b);
+                actualizados++;
+            }
+        }
+        if (actualizados > 0) {
+            log.info("  → {} bloques REGULAR con jornada backfilleada", actualizados);
+        }
+    }
+
+    // Siembra los 7 bloques JEC (4 clase + 3 pausas) como filas nuevas (ids ≥ 9).
+    private void ensureBloquesJec() {
+        if (bloqueHorarioRepository.countByJornada("JEC") > 0) return;
+
+        // numero, horaInicioH, horaInicioM, horaFinH, horaFinM, esRecreo
+        Object[][] datos = {
+            {1,  8,  0,  9, 30, false},   // Bloque clase 1
+            {2,  9, 45, 11, 15, false},   // Bloque clase 2
+            {3, 11, 30, 13,  0, false},   // Bloque clase 3
+            {4, 14, 15, 15, 45, false},   // Bloque clase 4
+            {5,  9, 30,  9, 45, true },    // Recreo 1
+            {6, 11, 15, 11, 30, true },    // Recreo 2
+            {7, 13,  0, 14, 15, true }     // Almuerzo
+        };
+        for (Object[] d : datos) {
+            bloqueHorarioRepository.save(BloqueHorario.builder()
+                .numero((Integer) d[0])
+                .horaInicio(LocalTime.of((Integer) d[1], (Integer) d[2]))
+                .horaFin(LocalTime.of((Integer) d[3], (Integer) d[4]))
+                .esRecreo((Boolean) d[5])
+                .jornada("JEC")
+                .build());
+        }
+        log.info("  → 7 bloques JEC creados (4 clase + 3 pausas)");
+    }
+
     // ─── Apoderados ──────────────────────────────────────────────────────────
 
     private void initApoderados() {
@@ -540,18 +703,33 @@ public class DataInitializer implements CommandLineRunner {
         int anioActual = Year.now().getValue();
         Parametro p = parametroRepository.findTopByOrderByIdAsc().orElse(null);
         if (p == null) {
-            // Por defecto 'S' (aproxima la nota), 60 segundos de inactividad y año escolar = actual.
+            // Por defecto 'S' (aproxima la nota), 60 segundos de inactividad, año escolar = actual
+            // y los parámetros de jornada JEC.
             parametroRepository.save(Parametro.builder()
                 .aproxNota("S")
                 .timeoutInactividad(60)
                 .anioEscolarActivo(anioActual)
+                .tipoJornada("JEC")
+                .duracionRecreo(15)
+                .horaInicioJornada("08:00")
+                .duracionBloqueMin(90)
+                .duracionAlmuerzo(75)
                 .build());
-            log.info("  → Parámetro creado: aproxNota='S', timeoutInactividad=60s, anioEscolarActivo={}", anioActual);
-        } else if (p.getAnioEscolarActivo() == null) {
-            // Backfill idempotente del año escolar activo en una fila preexistente.
-            p.setAnioEscolarActivo(anioActual);
-            parametroRepository.save(p);
-            log.info("  → Parámetro: backfill anioEscolarActivo={}", anioActual);
+            log.info("  → Parámetro creado: aproxNota='S', timeoutInactividad=60s, anioEscolarActivo={}, jornada JEC", anioActual);
+        } else {
+            // Backfill incondicional (independiente del guard de anioEscolarActivo): los campos
+            // JEC nacen NULL en BD poblada con ddl-auto=update y deben quedar con su default.
+            boolean dirty = false;
+            if (p.getAnioEscolarActivo() == null) { p.setAnioEscolarActivo(anioActual); dirty = true; }
+            if (p.getTipoJornada() == null)       { p.setTipoJornada("JEC");            dirty = true; }
+            if (p.getDuracionRecreo() == null)    { p.setDuracionRecreo(15);            dirty = true; }
+            if (p.getHoraInicioJornada() == null) { p.setHoraInicioJornada("08:00");    dirty = true; }
+            if (p.getDuracionBloqueMin() == null) { p.setDuracionBloqueMin(90);         dirty = true; }
+            if (p.getDuracionAlmuerzo() == null)  { p.setDuracionAlmuerzo(75);          dirty = true; }
+            if (dirty) {
+                parametroRepository.save(p);
+                log.info("  → Parámetro: backfill de campos nulos (anioEscolarActivo/JEC)");
+            }
         }
     }
 

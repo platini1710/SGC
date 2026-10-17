@@ -4,23 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { HorarioService } from '../../../core/services/horario.service';
 import { CursoService } from '../../../core/services/curso.service';
 import { Curso } from '../../../core/models/curso.model';
-import { GrillaHorario, HorarioCelda } from '../../../core/models/horario.model';
+import { BloqueInfo, GrillaHorario, HorarioCelda } from '../../../core/models/horario.model';
 import { BloqueCardComponent } from '../../../shared/bloque-card/bloque-card.component';
 import { MoverBloqueModalComponent } from '../../../shared/mover-bloque-modal/mover-bloque-modal.component';
 
-interface BloqueInfo { numero: number; hora: string; esRecreo: boolean; }
 interface EditandoState { horarioId: number; dia: number; bloque: number; profesorId: number; }
-
-const BLOQUES: BloqueInfo[] = [
-  { numero: 1, hora: '08:00–08:45', esRecreo: false },
-  { numero: 2, hora: '08:45–09:30', esRecreo: false },
-  { numero: 3, hora: '09:30–10:15', esRecreo: false },
-  { numero: 4, hora: '10:15–10:45', esRecreo: true },
-  { numero: 5, hora: '10:45–11:30', esRecreo: false },
-  { numero: 6, hora: '11:30–12:15', esRecreo: false },
-  { numero: 7, hora: '12:15–13:00', esRecreo: false },
-  { numero: 8, hora: '13:00–13:45', esRecreo: false },
-];
 
 const DIAS = [
   { num: 1, label: 'Lunes' },
@@ -49,8 +37,12 @@ export class GrillaCursoComponent implements OnInit {
 
   editando: EditandoState | null = null;
 
-  bloques = BLOQUES;
   dias = DIAS;
+
+  // Las filas se derivan del payload (grilla.bloques), no de una constante fija.
+  get bloques(): BloqueInfo[] {
+    return this.grilla?.bloques ?? [];
+  }
 
   ngOnInit(): void {
     this.cursoService.getAll().subscribe({

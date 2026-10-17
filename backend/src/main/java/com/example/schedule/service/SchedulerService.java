@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.function.Predicate;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +26,30 @@ public class SchedulerService {
 
     private static final int MAX_PASOS = 1_000_000;
 
+    /**
+     * Test-only: la generación de producción pasa por HorarioService.generarHorario(), que
+     * orquesta la pasada JEC (nivel 1..4) y la pasada REGULAR (nivel >=5) con un único borrado.
+     * Este método conserva el comportamiento histórico (borra + coloca sin filtro de nivel +
+     * guarda) únicamente para SchedulerServiceTest (mismo paquete).
+     */
     @Transactional
     public List<Horario> generarHorario() {
         horarioRepository.deleteByEditadoManualmenteFalse();
+        List<Horario> solucion = colocarCursosRegulares(ca -> true);
+        return horarioRepository.saveAll(solucion);
+    }
 
-        List<CursoAsignatura> todas = cursoAsignaturaRepository.findAll();
-        List<BloqueHorario> bloques = bloqueHorarioRepository.findByEsRecreoFalseOrderByNumeroAsc();
+    /**
+     * Coloca las cargas REGULARES (bloques de 45') de los cursos que cumplen el predicado, sin
+     * borrar ni guardar: devuelve la solución en memoria con la auditoría estampada. La
+     * orquestación de producción (HorarioService) la invoca con el filtro nivel >= 5.
+     */
+    public List<Horario> colocarCursosRegulares(Predicate<CursoAsignatura> filtro) {
+        List<CursoAsignatura> todas = cursoAsignaturaRepository.findAll().stream()
+                .filter(filtro)
+                .toList();
+        List<BloqueHorario> bloques =
+                bloqueHorarioRepository.findByJornadaAndEsRecreoFalseOrderByNumeroAsc("REGULAR");
 
         // Validate all have professors assigned
         for (CursoAsignatura ca : todas) {
@@ -85,7 +104,7 @@ public class SchedulerService {
             h.setHoraModificacion(ahora);
         }
 
-        return horarioRepository.saveAll(solucion);
+        return solucion;
     }
 
     private boolean asignar(int indice,

@@ -15,4 +15,11 @@ public class HorarioCeldaDTO {
     private String nombreProfesor;
     private String color;
     private String nombreCurso;
+
+    // Segundo subtramo opcional (medios bloques JEC).
+    private Long asignaturaSecId;
+    private String nombreAsignaturaSec;
+    private Long profesorSecId;
+    private String nombreProfesorSec;
+    private Boolean esMedioBloque;
 }

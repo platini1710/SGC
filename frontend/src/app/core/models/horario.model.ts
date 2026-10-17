@@ -6,6 +6,22 @@ export interface HorarioCelda {
   nombreProfesor: string;
   color: string;
   nombreCurso?: string;
+  // Segundo subtramo opcional (medios bloques JEC).
+  asignaturaSecId?: number;
+  nombreAsignaturaSec?: string;
+  profesorSecId?: number;
+  nombreProfesorSec?: string;
+  esMedioBloque?: boolean;
+}
+
+export interface BloqueInfo {
+  id: number;
+  numero: number;
+  jornada: string;
+  horaInicio: string;
+  horaFin: string;
+  esRecreo: boolean;
+  claveRender: string;
 }
 
 export interface GrillaHorario {
@@ -14,6 +30,7 @@ export interface GrillaHorario {
   nombreCurso?: string;
   nombreProfesor?: string;
   grilla: Record<string, Record<string, HorarioCelda | null>>;
+  bloques?: BloqueInfo[];
 }
 
 export interface HorarioResponse {
@@ -26,9 +43,17 @@ export interface HorarioResponse {
   nombreProfesor: string;
   diaSemana: number;
   bloqueId: number;
+  bloqueNumero: number;
+  jornada: string;
   horaInicio: string;
   horaFin: string;
   editadoManualmente: boolean;
+  // Segundo subtramo opcional (medios bloques JEC).
+  asignaturaSecId?: number;
+  nombreAsignaturaSec?: string;
+  profesorSecId?: number;
+  nombreProfesorSec?: string;
+  esMedioBloque?: boolean;
 }
 
 export interface MoverBloqueRequest {

@@ -30,7 +30,29 @@ public class ConflictValidatorService {
                     .build());
         }
 
-        if (horarioRepository.existsByProfesorIdAndDiaSemanaAndBloqueIdAndIdNot(nuevoProfesorId, nuevoDia, nuevoBloqueId, horarioId)) {
+        boolean conflictoProfesor =
+                horarioRepository.existsByProfesorIdAndDiaSemanaAndBloqueIdAndIdNot(nuevoProfesorId, nuevoDia, nuevoBloqueId, horarioId);
+
+        // La constraint única (profesor_id, dia_semana, bloque_id) sólo cubre el profesor
+        // primario. Para los medios bloques (subtramo secundario) validamos en memoria si el
+        // profesor destino ya ocupa esa ranura como primario o como secundario de otra fila.
+        if (!conflictoProfesor) {
+            for (Horario fila : horarioRepository.findByDiaSemanaAndBloqueId(nuevoDia, nuevoBloqueId)) {
+                if (fila.getId().equals(horarioId)) {
+                    continue;
+                }
+                boolean coincidePrimario = fila.getProfesor() != null
+                        && fila.getProfesor().getId().equals(nuevoProfesorId);
+                boolean coincideSecundario = fila.getProfesorSecundaria() != null
+                        && fila.getProfesorSecundaria().getId().equals(nuevoProfesorId);
+                if (coincidePrimario || coincideSecundario) {
+                    conflictoProfesor = true;
+                    break;
+                }
+            }
+        }
+
+        if (conflictoProfesor) {
             conflictos.add(ConflictoResponse.builder()
                     .tipo("PROFESOR")
                     .descripcion("El profesor ya tiene clase en ese bloque")

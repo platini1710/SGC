@@ -70,7 +70,7 @@ class SchedulerServiceTest {
         }
 
         when(cursoAsignaturaRepository.findAll()).thenReturn(cargas);
-        when(bloqueHorarioRepository.findByEsRecreoFalseOrderByNumeroAsc()).thenReturn(bloques);
+        when(bloqueHorarioRepository.findByJornadaAndEsRecreoFalseOrderByNumeroAsc("REGULAR")).thenReturn(bloques);
         when(auditoriaHelper.usuarioActual()).thenReturn("tester");
         when(horarioRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 

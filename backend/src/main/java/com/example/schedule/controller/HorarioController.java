@@ -1,5 +1,6 @@
 package com.example.schedule.controller;
 
+import com.example.schedule.dto.BloqueDTO;
 import com.example.schedule.dto.HorarioResponse;
 import com.example.schedule.dto.MoverBloqueRequest;
 import com.example.schedule.service.HorarioService;
@@ -22,6 +23,11 @@ public class HorarioController {
     @GetMapping
     public List<HorarioResponse> getHorarioCompleto() {
         return horarioService.getHorarioCompleto();
+    }
+
+    @GetMapping("/bloques")
+    public List<BloqueDTO> getBloques() {
+        return horarioService.listarBloques();
     }
 
     @PostMapping("/generar")
