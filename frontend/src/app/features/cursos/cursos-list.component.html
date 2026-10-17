@@ -57,6 +57,21 @@
         </div>
       </div>
 
+      <!-- Plan de Estudio -->
+      <div class="form-group" style="max-width:480px;margin-bottom:20px">
+        <label>Plan de Estudio</label>
+        <div class="flex gap-8">
+          <select [(ngModel)]="planEstudioSeleccionado" style="flex:1">
+            <option [ngValue]="null">Sin asignar</option>
+            @for (p of planes; track p.id) {
+              <option [ngValue]="p.id">{{ p.nombre }}</option>
+            }
+          </select>
+          <button class="btn btn-primary btn-sm" (click)="guardarPlanEstudio()">Guardar</button>
+        </div>
+        <small style="color:#757575">Plan actual: {{ cursoSeleccionado.nombrePlanEstudio ?? '— sin plan —' }}</small>
+      </div>
+
       <div class="flex items-center justify-between mb-16">
         <h3 style="margin-bottom:0;font-size:15px">Asignaturas</h3>
         <div class="flex gap-8">
@@ -73,10 +88,13 @@
               <label>Asignatura *</label>
               <select formControlName="asignaturaId">
                 <option [ngValue]="null">Seleccione…</option>
-                @for (a of asignaturas; track a.id) {
+                @for (a of asignaturasDisponibles; track a.id) {
                   <option [ngValue]="a.id">{{ a.nombre }}</option>
                 }
               </select>
+              @if (asignaturasDisponibles.length === 0) {
+                <small style="color:#c62828">Asigne primero un plan de estudio al curso</small>
+              }
             </div>
             <div class="form-group">
               <label>Horas *</label>

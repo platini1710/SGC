@@ -5,6 +5,7 @@ import { HorarioAdminComponent } from './features/horario/horario-admin/horario-
 import { ProfesoresListComponent } from './features/profesores/profesores-list.component';
 import { AsignaturasListComponent } from './features/asignaturas/asignaturas-list.component';
 import { CursosListComponent } from './features/cursos/cursos-list.component';
+import { PlanesEstudioListComponent } from './features/planes-estudio/planes-estudio-list.component';
 import { EstudiantesListComponent } from './features/estudiantes/estudiantes-list.component';
 import { ApoderadosListComponent } from './features/apoderados/apoderados-list.component';
 import { GrillaNotasComponent } from './features/notas/grilla-notas/grilla-notas.component';
@@ -26,6 +27,7 @@ export const routes: Routes = [
   { path: 'profesores', component: ProfesoresListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'asignaturas', component: AsignaturasListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'cursos', component: CursosListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
+  { path: 'planes-estudio', component: PlanesEstudioListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'estudiantes', component: EstudiantesListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'apoderados', component: ApoderadosListComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'trimestres', component: TrimestresComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },

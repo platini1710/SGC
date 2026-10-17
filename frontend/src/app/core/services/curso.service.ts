@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Curso, CursoDetalle, CursoAsignaturaRequest } from '../models/curso.model';
+import { Asignatura } from '../models/asignatura.model';
 import { GrillaHorario } from '../models/horario.model';
 import { Estudiante } from '../models/estudiante.model';
 import { PageResponse } from '../models/page.model';
@@ -43,5 +44,15 @@ export class CursoService {
   // Asigna (profesorId) o quita (null) el profesor jefe del curso.
   asignarProfesorJefe(cursoId: number, profesorId: number | null): Observable<Curso> {
     return this.http.put<Curso>(`${this.base}/api/cursos/${cursoId}/profesor-jefe`, { profesorId });
+  }
+
+  // Asigna (planEstudioId) o quita (null) el plan de estudio del curso.
+  asignarPlanEstudio(cursoId: number, planEstudioId: number | null): Observable<Curso> {
+    return this.http.put<Curso>(`${this.base}/api/cursos/${cursoId}/plan-estudio`, { planEstudioId });
+  }
+
+  // Asignaturas de la malla del plan asociado al curso (vacío si no tiene plan).
+  getAsignaturasDisponibles(cursoId: number): Observable<Asignatura[]> {
+    return this.http.get<Asignatura[]>(`${this.base}/api/cursos/${cursoId}/asignaturas-disponibles`);
   }
 }

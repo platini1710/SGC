@@ -3,6 +3,8 @@ export interface Curso {
   nombre: string;
   nivel: number;
   profesorJefe?: string;
+  planEstudioId?: number | null;
+  nombrePlanEstudio?: string | null;
 }
 
 export interface CursoDetalle extends Curso {
