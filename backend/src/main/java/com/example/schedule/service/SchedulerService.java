@@ -45,9 +45,23 @@ public class SchedulerService {
      * orquestación de producción (HorarioService) la invoca con el filtro nivel >= 5.
      */
     public List<Horario> colocarCursosRegulares(Predicate<CursoAsignatura> filtro) {
+        return colocarCursosRegulares(filtro, new HashSet<>());
+    }
+
+    /**
+     * Igual que {@link #colocarCursosRegulares(Predicate)} pero sembrando la ocupación de
+     * profesores con {@code profesorOcupado} (claves "profesorId-dia-bloqueId" de los horarios
+     * ya persistidos de OTROS cursos). Se usa en la regeneración de un único curso para no
+     * duplicar a un profesor que ya está colocado en otro curso.
+     */
+    public List<Horario> colocarCursosRegulares(Predicate<CursoAsignatura> filtro,
+                                                Set<String> profesorOcupado) {
         List<CursoAsignatura> todas = cursoAsignaturaRepository.findAll().stream()
                 .filter(filtro)
                 .toList();
+        if (todas.isEmpty()) {
+            return new ArrayList<>();
+        }
         List<BloqueHorario> bloques =
                 bloqueHorarioRepository.findByJornadaAndEsRecreoFalseOrderByNumeroAsc("REGULAR");
 
@@ -83,9 +97,9 @@ public class SchedulerService {
             }
         }
 
-        // In-memory occupancy + solution accumulator (no DB queries inside the loop)
+        // In-memory occupancy + solution accumulator (no DB queries inside the loop).
+        // profesorOcupado puede venir sembrado con la ocupación de otros cursos ya persistidos.
         Set<String> cursoOcupado = new HashSet<>();
-        Set<String> profesorOcupado = new HashSet<>();
         List<Horario> solucion = new ArrayList<>();
         int[] contador = {0};
 

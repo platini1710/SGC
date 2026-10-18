@@ -35,6 +35,11 @@ public class HorarioController {
         return horarioService.generarHorario();
     }
 
+    @PostMapping("/generar/curso/{cursoId}")
+    public List<HorarioResponse> generarHorarioCurso(@PathVariable Long cursoId) {
+        return horarioService.generarHorarioCurso(cursoId);
+    }
+
     @PutMapping("/{id}")
     public HorarioResponse moverBloque(@PathVariable Long id, @Valid @RequestBody MoverBloqueRequest request) {
         return horarioService.moverBloque(id, request);

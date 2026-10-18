@@ -30,4 +30,9 @@ public interface HorarioRepository extends JpaRepository<Horario, Long> {
     @Transactional
     @Query("DELETE FROM Horario h WHERE h.editadoManualmente = false")
     void deleteByEditadoManualmenteFalse();
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Horario h WHERE h.curso.id = :cursoId AND h.editadoManualmente = false")
+    void deleteByCursoIdAndEditadoManualmenteFalse(Long cursoId);
 }

@@ -41,6 +41,60 @@ public class HorarioService {
                 .toList();
     }
 
+    /**
+     * Regenera el horario de UN solo curso sin tocar el de los demás:
+     * <ol>
+     *   <li>valida que el curso exista (404 si no);</li>
+     *   <li>borra solo las filas no editadas manualmente de ese curso;</li>
+     *   <li>siembra la ocupación de profesores con los horarios ya persistidos de los OTROS
+     *       cursos (profesor principal y profesor del 2.º subtramo de 45') para no duplicar a un
+     *       profesor ya colocado en otro curso;</li>
+     *   <li>enruta a la pasada JEC (nivel 1..4) o REGULAR (nivel &gt;=5) solo para este curso;</li>
+     *   <li>persiste y devuelve el horario resultante del curso.</li>
+     * </ol>
+     * Si el curso no tiene cargas (CursoAsignatura) devuelve lista vacía. Si la generación es
+     * inviable se propaga la {@link com.example.schedule.exception.SchedulingException} (422).
+     */
+    @Transactional
+    public List<HorarioResponse> generarHorarioCurso(Long cursoId) {
+        Curso curso = cursoRepository.findById(cursoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id: " + cursoId));
+
+        // Borra solo las filas no editadas manualmente del curso objetivo.
+        horarioRepository.deleteByCursoIdAndEditadoManualmenteFalse(cursoId);
+
+        // Ocupación de profesores sembrada con TODOS los horarios restantes (otros cursos y las
+        // filas editadas manualmente del propio curso). Incluye el profesor del 2.º subtramo.
+        Set<String> profesorOcupado = new HashSet<>();
+        for (Horario h : horarioRepository.findAll()) {
+            if (h.getProfesor() != null) {
+                profesorOcupado.add(claveProfesor(h.getProfesor().getId(), h.getDiaSemana(), h.getBloque()));
+            }
+            if (h.getProfesorSecundaria() != null) {
+                profesorOcupado.add(claveProfesor(h.getProfesorSecundaria().getId(), h.getDiaSemana(), h.getBloque()));
+            }
+        }
+
+        Integer nivel = curso.getNivel();
+        List<Horario> resultado;
+        if (nivel != null && nivel <= 4) {
+            resultado = jecSchedulerService.colocarCursoJecUnico(curso, profesorOcupado);
+        } else {
+            resultado = schedulerService.colocarCursosRegulares(
+                    ca -> ca.getCurso().getId().equals(cursoId), profesorOcupado);
+        }
+
+        horarioRepository.saveAll(resultado);
+        return resultado.stream()
+                .map(this::toHorarioResponse)
+                .toList();
+    }
+
+    private String claveProfesor(Long profesorId, Integer diaSemana, BloqueHorario bloque) {
+        Long bloqueId = bloque != null ? bloque.getId() : null;
+        return profesorId + "-" + diaSemana + "-" + bloqueId;
+    }
+
     public List<BloqueDTO> listarBloques() {
         return bloqueHorarioRepository.findAll().stream()
                 .sorted(Comparator

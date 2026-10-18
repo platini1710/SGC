@@ -129,6 +129,52 @@ public class JecSchedulerService {
             }
         }
 
+        estamparAuditoria(solucion);
+        return solucion;
+    }
+
+    /**
+     * Coloca las cargas JEC de UN solo curso (nivel 1..4) sobre los 4 bloques de 90' de la jornada
+     * JEC, sin borrar ni guardar. Siembra la ocupación de profesores con {@code profesorOcupado}
+     * (claves "profesorId-dia-bloqueId" de los horarios ya persistidos de los OTROS cursos) para
+     * no duplicar a un profesor que ya está colocado en otro curso. Devuelve la solución en
+     * memoria con la auditoría estampada.
+     */
+    public List<Horario> colocarCursoJecUnico(Curso curso, Set<String> profesorOcupado) {
+        List<BloqueHorario> bloquesJec =
+                bloqueHorarioRepository.findByJornadaAndEsRecreoFalseOrderByNumeroAsc("JEC");
+        if (bloquesJec.size() < 4) {
+            throw new SchedulingException(
+                    "No hay suficientes bloques de clase JEC para generar el horario (se requieren 4).");
+        }
+
+        Map<Integer, List<BloqueHorario>> ranurasPorDia = new LinkedHashMap<>();
+        for (int dia = 1; dia <= 4; dia++) {
+            ranurasPorDia.put(dia, bloquesJec.subList(0, 4));
+        }
+        ranurasPorDia.put(5, bloquesJec.subList(0, 3));
+
+        List<Unidad> unidades = construirUnidades(curso);
+        if (unidades.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        Set<String> cursoOcupado = new HashSet<>();
+        List<Horario> solucion = new ArrayList<>();
+        int[] contador = {0};
+
+        if (!colocarCurso(curso, unidades, 0, ranurasPorDia,
+                cursoOcupado, profesorOcupado, solucion, contador)) {
+            throw new SchedulingException(
+                    "No se pudo generar el horario JEC para el curso " + curso.getNombre()
+                    + " con las restricciones actuales.");
+        }
+
+        estamparAuditoria(solucion);
+        return solucion;
+    }
+
+    private void estamparAuditoria(List<Horario> solucion) {
         String usuario = auditoriaHelper.usuarioActual();
         LocalDate hoy = LocalDate.now();
         LocalTime ahora = LocalTime.now();
@@ -137,8 +183,6 @@ public class JecSchedulerService {
             h.setFechaModificacion(hoy);
             h.setHoraModificacion(ahora);
         }
-
-        return solucion;
     }
 
     // ─── Construcción de unidades (bloques completos + medios emparejados) ───────

@@ -64,6 +64,11 @@ export class HorarioService {
     return this.http.post(`${this.base}/api/horarios/generar`, {});
   }
 
+  // Regenera el horario de un solo curso sin tocar el de los demás.
+  generarHorarioCurso(cursoId: number): Observable<unknown> {
+    return this.http.post(`${this.base}/api/horarios/generar/curso/${cursoId}`, {});
+  }
+
   moverBloque(horarioId: number, req: MoverBloqueRequest): Observable<unknown> {
     return this.http.put(`${this.base}/api/horarios/${horarioId}`, req);
   }

@@ -19,6 +19,32 @@
   </div>
 
   <div class="card">
+    <h3 style="margin-bottom:12px">Generar horario de un curso</h3>
+    <p style="color:var(--text-secondary);margin-bottom:12px;font-size:13px">
+      Regenera el horario de un solo curso sin modificar el de los demás. Respeta la ocupación
+      de los profesores ya asignados en otros cursos.
+    </p>
+    @if (mensajeGenerarCurso) {
+      <div class="alert alert-success">{{ mensajeGenerarCurso }}</div>
+    }
+    @if (errorGenerarCurso) {
+      <div class="alert alert-error">{{ errorGenerarCurso }}</div>
+    }
+    <div class="form-group" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <select style="max-width:260px" [(ngModel)]="cursoSeleccionadoId" [disabled]="generandoCurso">
+        <option [ngValue]="null">Seleccione un curso…</option>
+        @for (curso of cursos; track curso.id) {
+          <option [ngValue]="curso.id">{{ curso.nombre }}</option>
+        }
+      </select>
+      <button class="btn btn-primary" (click)="generarHorarioCurso()" [disabled]="generandoCurso || cursoSeleccionadoId == null">
+        @if (generandoCurso) { <span class="spinner" style="width:16px;height:16px;border-width:2px;vertical-align:middle;margin-right:6px"></span> }
+        🔄 Generar horario de este curso
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
     <h3 style="margin-bottom:12px">Borrar Horario</h3>
     <p style="color:var(--text-secondary);margin-bottom:12px;font-size:13px">
       Elimina todos los horarios generados. Los datos de cursos, profesores y asignaturas no se borran.
