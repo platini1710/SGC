@@ -9,13 +9,15 @@ export class TrimestreService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
 
-  getAll(anio?: number): Observable<Trimestre[]> {
-    let params = new HttpParams();
-    if (anio !== undefined) {
-      params = params.set('anio', anio.toString());
-    }
-    return this.http.get<Trimestre[]>(`${this.base}/api/trimestres`, { params });
+getAll(anio?: number | string): Observable<Trimestre[]> {
+  let params = new HttpParams();
+  
+  if (anio !== undefined && anio !== null && anio !== '' && !isNaN(Number(anio))) {
+    params = params.set('anio', Number(anio).toString());
   }
+
+  return this.http.get<Trimestre[]>(`${this.base}/api/trimestres`, { params });
+}
 
   // Años distintos con trimestres registrados (desc), para poblar selectores.
   getAnios(): Observable<number[]> {
