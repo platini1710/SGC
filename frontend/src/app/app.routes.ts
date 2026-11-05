@@ -15,12 +15,16 @@ import { ReportesComponent } from './features/reportes/reportes.component';
 import { ParametrosComponent } from './features/parametros/parametros.component';
 import { PromocionComponent } from './features/promocion/promocion.component';
 import { LoginComponent } from './features/auth/login/login.component';
+import { MiRostroComponent } from './features/auth/mi-rostro/mi-rostro.component';
+import { CambiarPasswordComponent } from './features/auth/cambiar-password/cambiar-password.component';
+import { UsuariosBloqueadosComponent } from './features/usuarios-bloqueados/usuarios-bloqueados.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'horario/curso', pathMatch: 'full' },
   { path: 'login', component: LoginComponent },
+  { path: 'cambiar-password', component: CambiarPasswordComponent },
   { path: 'horario/curso', component: GrillaCursoComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'horario/profesor', component: GrillaProfesorComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'horario/admin', component: HorarioAdminComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
@@ -36,5 +40,7 @@ export const routes: Routes = [
   { path: 'reportes', component: ReportesComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'DOCENTE'] } },
   { path: 'parametros', component: ParametrosComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
   { path: 'promocion', component: PromocionComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
+  { path: 'usuarios-bloqueados', component: UsuariosBloqueadosComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN'] } },
+  { path: 'mi-rostro', component: MiRostroComponent, canActivate: [authGuard, roleGuard], data: { roles: ['ADMIN', 'DOCENTE'] } },
   { path: '**', redirectTo: 'horario/curso' }
 ];

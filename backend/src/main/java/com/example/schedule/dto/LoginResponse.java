@@ -12,4 +12,6 @@ public class LoginResponse {
     private Long profesorId;
     @Builder.Default
     private String tokenType = "Bearer";
+    // RF-01.2: true si la contraseña expiró o es alta inicial; el frontend fuerza el cambio.
+    private boolean mustChangePassword;
 }

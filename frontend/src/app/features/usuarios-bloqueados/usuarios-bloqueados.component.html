@@ -1,0 +1,59 @@
+<div>
+  <h2 class="page-title">🔒 Usuarios bloqueados</h2>
+
+  @if (mensajeOk) { <div class="alert alert-success" role="status">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error" role="alert">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <p style="margin-bottom:12px;color:#555">
+      Una cuenta se bloquea tras 3 intentos de login fallidos (contraseña o rostro).
+      Los docentes quedan bloqueados hasta que se desbloqueen aquí; los administradores, 15 minutos.
+    </p>
+
+    @if (cargando) {
+      <div style="text-align:center;padding:20px"><span class="spinner"></span></div>
+    } @else {
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Usuario</th>
+              <th scope="col">Nombre</th>
+              <th scope="col">Rol</th>
+              <th scope="col">Bloqueo</th>
+              <th scope="col" style="text-align:right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuarios; track u.id) {
+              <tr>
+                <td>{{ u.username }}</td>
+                <td>{{ u.nombre ?? '—' }}</td>
+                <td>{{ u.rol }}</td>
+                <td>
+                  @if (u.permanente) {
+                    Permanente
+                  } @else {
+                    Hasta {{ u.bloqueadoHasta | date:'dd-MM-yyyy HH:mm' }}
+                  }
+                </td>
+                <td style="text-align:right">
+                  <button type="button" class="btn btn-primary btn-sm"
+                          (click)="desbloquear(u)" [disabled]="desbloqueandoId === u.id"
+                          [attr.aria-label]="'Desbloquear ' + u.username">
+                    {{ desbloqueandoId === u.id ? 'Desbloqueando…' : 'Desbloquear' }}
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" style="text-align:center;color:#757575">No hay usuarios bloqueados</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button type="button" class="btn btn-secondary btn-sm" (click)="cargar()">Actualizar</button>
+      </div>
+    }
+  </div>
+</div>

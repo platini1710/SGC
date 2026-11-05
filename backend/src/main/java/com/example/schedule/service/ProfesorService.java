@@ -3,6 +3,7 @@ package com.example.schedule.service;
 import com.example.schedule.dto.HorarioResponse;
 import com.example.schedule.dto.ProfesorRequest;
 import com.example.schedule.dto.ProfesorResponse;
+import com.example.schedule.exception.DuplicadoException;
 import com.example.schedule.exception.ResourceNotFoundException;
 import com.example.schedule.model.Horario;
 import com.example.schedule.model.Profesor;
@@ -33,6 +34,7 @@ public class ProfesorService {
     }
 
     public ProfesorResponse create(ProfesorRequest request) {
+        validarEmailUnico(request.getEmail(), null);
         Profesor profesor = Profesor.builder()
                 .nombre(request.getNombre())
                 .apellido(request.getApellido())
@@ -47,6 +49,7 @@ public class ProfesorService {
 
     public ProfesorResponse update(Long id, ProfesorRequest request) {
         Profesor profesor = getById(id);
+        validarEmailUnico(request.getEmail(), id);
         profesor.setNombre(request.getNombre());
         profesor.setApellido(request.getApellido());
         profesor.setEmail(request.getEmail());
@@ -67,6 +70,19 @@ public class ProfesorService {
         return horarioRepository.findByProfesorId(profesorId).stream()
                 .map(this::toHorarioResponse)
                 .toList();
+    }
+
+    // Rechaza un correo ya usado por OTRO profesor con un 409 claro, en vez del error crudo de BD.
+    private void validarEmailUnico(String email, Long idActual) {
+        if (email == null || email.isBlank()) {
+            return;
+        }
+        profesorRepository.findByEmail(email.trim()).ifPresent(existente -> {
+            if (!existente.getId().equals(idActual)) {
+                throw new DuplicadoException(
+                        "El correo electrónico ya está registrado en otro profesor.");
+            }
+        });
     }
 
     public Profesor getById(Long id) {

@@ -115,6 +115,15 @@
   margin-bottom: 16px;
 }
 
+.face-toggle,
+app-face-capture {
+  margin-top: 12px;
+}
+
+app-face-capture {
+  display: block;
+}
+
 .login-btn {
   width: 100%;
 

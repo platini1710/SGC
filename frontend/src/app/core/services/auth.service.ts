@@ -31,20 +31,60 @@ export class AuthService {
 
   login(req: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.base}/auth/login`, req).pipe(
-      tap((res) => {
-        localStorage.setItem(TOKEN_KEY, res.token);
-        const usuario: UsuarioActual = {
-          username: res.username,
-          rol: res.rol,
-          profesorId: res.profesorId
-        };
-        localStorage.setItem(USER_KEY, JSON.stringify(usuario));
-        this.currentUser$.next(usuario);
-      })
+      tap((res) => this.guardarSesion(res))
     );
   }
 
   // motivo opcional: 'inactividad' cuando el cierre es automático.
+  // Login por rostro: usuario + descriptor facial (128 valores). Misma respuesta que login().
+  faceLogin(username: string, descriptor: number[]): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.base}/auth/face-login`, { username, descriptor }).pipe(
+      tap((res) => this.guardarSesion(res))
+    );
+  }
+
+  enrollFace(descriptor: number[], password: string, consentimiento: boolean): Observable<{ registrado: boolean }> {
+    return this.http.post<{ registrado: boolean }>(
+      `${this.base}/auth/face/enroll`, { descriptor, password, consentimiento });
+  }
+
+  faceStatus(): Observable<{ registrado: boolean }> {
+    return this.http.get<{ registrado: boolean }>(`${this.base}/auth/face/status`);
+  }
+
+  removeFace(): Observable<void> {
+    return this.http.delete<void>(`${this.base}/auth/face`);
+  }
+
+  // RF-01.3: solicita el código de 5 dígitos al correo del profesor.
+  solicitarCodigoCambio(email: string): Observable<{ message: string; debugCode?: string }> {
+    return this.http.post<{ message: string; debugCode?: string }>(
+      `${this.base}/auth/pwd/code`, { email });
+  }
+
+  // RF-01.3: valida el código y asienta la nueva contraseña.
+  confirmarCambioPassword(email: string, code: string, newPassword: string): Observable<{ updated: boolean }> {
+    return this.http.post<{ updated: boolean }>(
+      `${this.base}/auth/pwd/reset`, { email, code, newPassword });
+  }
+
+  // El login quedó a medias: hay sesión, pero el docente debe cambiar la clave antes de usarla.
+  requiereCambioPassword(): boolean {
+    return !!this.getUsuario()?.mustChangePassword;
+  }
+
+  private guardarSesion(res: LoginResponse): void {
+    localStorage.setItem(TOKEN_KEY, res.token);
+    const usuario: UsuarioActual = {
+      username: res.username,
+      rol: res.rol,
+      profesorId: res.profesorId,
+      mustChangePassword: res.mustChangePassword
+    };
+    localStorage.setItem(USER_KEY, JSON.stringify(usuario));
+    this.currentUser$.next(usuario);
+  }
+
   logout(motivo?: 'inactividad'): void {
     this.limpiarSesion();
     const extras = motivo === 'inactividad'

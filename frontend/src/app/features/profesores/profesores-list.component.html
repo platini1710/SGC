@@ -23,8 +23,14 @@
             <input formControlName="apellido" type="text" placeholder="Apellido">
           </div>
           <div class="form-group">
-            <label>Email</label>
-            <input formControlName="email" type="email" placeholder="correo@colegio.cl">
+            <label>Email *</label>
+            <input formControlName="email" type="email" placeholder="usuario@dominio.cl">
+            @if (email.touched && email.hasError('required')) {
+              <small class="field-error">El correo electrónico es obligatorio.</small>
+            }
+            @if (email.touched && email.hasError('pattern')) {
+              <small class="field-error">Por favor, ingrese un formato de correo electrónico válido (ejemplo: usuario&#64;dominio.cl).</small>
+            }
           </div>
           <div class="form-group">
             <label>RUT</label>

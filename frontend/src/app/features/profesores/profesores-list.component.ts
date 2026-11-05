@@ -37,7 +37,8 @@ export class ProfesoresListComponent implements OnInit {
     this.form = this.fb.group({
       nombre: ['', Validators.required],
       apellido: ['', Validators.required],
-      email: [''],
+      // RF-01.4: correo obligatorio y con formato válido.
+      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]],
       rut: [''],
       especialidadIds: [[]]
     });
@@ -76,21 +77,29 @@ export class ProfesoresListComponent implements OnInit {
     this.form.reset();
   }
 
+  get email() { return this.form.get('email')!; }
+
   guardar(): void {
-    if (this.form.invalid) { return; }
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     const val = this.form.value as { nombre: string; apellido: string; email: string; rut: string; especialidadIds: number[] };
     const req = { nombre: val.nombre, apellido: val.apellido, email: val.email, rut: val.rut, especialidadIds: val.especialidadIds ?? [] };
     if (this.editandoId !== null) {
       this.profesorService.update(this.editandoId, req).subscribe({
         next: () => { this.mensajeOk = 'Profesor actualizado.'; this.cancelar(); this.cargar(); },
-        error: () => (this.errorMsg = 'Error actualizando profesor')
+        error: (err) => (this.errorMsg = this.mensajeError(err, 'Error actualizando profesor'))
       });
     } else {
       this.profesorService.create(req).subscribe({
         next: () => { this.mensajeOk = 'Profesor creado.'; this.cancelar(); this.cargar(); },
-        error: () => (this.errorMsg = 'Error creando profesor')
+        error: (err) => (this.errorMsg = this.mensajeError(err, 'Error creando profesor'))
       });
     }
+  }
+
+  // Usa el mensaje del backend (ej. 409 correo duplicado, 400 validación) si viene.
+  private mensajeError(err: unknown, fallback: string): string {
+    const e = err as { error?: { error?: string } };
+    return e?.error?.error ?? fallback;
   }
 
   eliminar(id: number): void {

@@ -87,11 +87,24 @@ public class DataInitializer implements CommandLineRunner {
                     .rol("DOCENTE")
                     .profesor(p)
                     .activo(true)
+                    .passwordUpdatedAt(java.time.LocalDateTime.now())
                     .build());
                 docentes++;
             }
         }
         log.info("  → {} usuarios DOCENTE creados (username = RUT, password = 1234)", docentes);
+
+        // RF-01.2: fija la fecha base de vigencia a los usuarios que aún no la tienen,
+        // para que las cuentas existentes no venzan todas de golpe al desplegar.
+        int backfill = 0;
+        for (Usuario u : usuarioRepository.findByPasswordUpdatedAtIsNull()) {
+            u.setPasswordUpdatedAt(java.time.LocalDateTime.now());
+            usuarioRepository.save(u);
+            backfill++;
+        }
+        if (backfill > 0) {
+            log.info("  → {} usuarios con password_updated_at inicializado", backfill);
+        }
     }
 
     // ─── Bloques horarios ────────────────────────────────────────────────────

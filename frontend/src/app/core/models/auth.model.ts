@@ -11,10 +11,13 @@ export interface LoginResponse {
   rol: Rol;
   profesorId?: number;
   tokenType?: string;
+  // RF-01.2: true si la contraseña expiró o es alta inicial; el frontend fuerza el cambio.
+  mustChangePassword?: boolean;
 }
 
 export interface UsuarioActual {
   username: string;
   rol: Rol;
   profesorId?: number;
+  mustChangePassword?: boolean;
 }

@@ -1,0 +1,45 @@
+<div>
+  <h2 class="page-title">🙂 Mi rostro</h2>
+
+  @if (mensajeOk) { <div class="alert alert-success" role="status">{{ mensajeOk }}</div> }
+  @if (errorMsg) { <div class="alert alert-error" role="alert">{{ errorMsg }}</div> }
+
+  <div class="card">
+    <p>
+      Registra tu rostro para poder iniciar sesión con la cámara. La contraseña sigue funcionando siempre.
+    </p>
+    @if (registrado !== null) {
+      <p>Estado: <strong>{{ registrado ? 'Rostro registrado' : 'Sin rostro registrado' }}</strong></p>
+    }
+
+    <div class="acciones">
+      <button type="button" class="btn btn-primary" (click)="toggleFormulario()" [disabled]="ocupado">
+        {{ mostrarFormulario ? 'Cancelar' : (registrado ? 'Reemplazar rostro' : 'Registrar rostro') }}
+      </button>
+      @if (registrado && !mostrarFormulario) {
+        <button type="button" class="btn btn-danger" (click)="eliminar()" [disabled]="ocupado">
+          Eliminar rostro
+        </button>
+      }
+    </div>
+
+    @if (mostrarFormulario) {
+      <div class="formulario">
+        <div class="form-group">
+          <label for="rostro-password">Confirma tu contraseña</label>
+          <input id="rostro-password" type="password" [(ngModel)]="password" autocomplete="current-password" />
+        </div>
+        <label class="consentimiento">
+          <input type="checkbox" [(ngModel)]="consentimiento" />
+          Acepto que se almacene una representación numérica de mi rostro para iniciar sesión.
+        </label>
+
+        @if (puedeCapturar) {
+          <app-face-capture buttonLabel="Capturar y registrar" [busy]="ocupado" (captured)="onCapturado($event)" />
+        } @else {
+          <small class="ayuda">Completa la contraseña y acepta el consentimiento para activar la cámara.</small>
+        }
+      </div>
+    }
+  </div>
+</div>

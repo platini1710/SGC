@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -16,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "passwordHash")
+@ToString(exclude = {"passwordHash", "faceDescriptor"})
 public class Usuario implements UserDetails {
 
     @Id
@@ -40,6 +41,33 @@ public class Usuario implements UserDetails {
     @Builder.Default
     private boolean activo = true;
 
+    // Descriptor facial (128 valores) serializado como arreglo JSON. Null si no hay rostro registrado.
+    @Column(name = "face_descriptor", columnDefinition = "text")
+    private String faceDescriptor;
+
+    // Intentos de login fallidos consecutivos (contraseña y rostro comparten el contador).
+    @Column(name = "intentos_fallidos", nullable = false, columnDefinition = "integer default 0")
+    @Builder.Default
+    private int intentosFallidos = 0;
+
+    // Bloqueo permanente: solo un ADMIN puede quitarlo.
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean bloqueado = false;
+
+    // Bloqueo temporal (usuarios ADMIN): vence solo en esta fecha/hora.
+    @Column(name = "bloqueado_hasta")
+    private LocalDateTime bloqueadoHasta;
+
+    // RF-01.2: fecha del último cambio de contraseña (para la vigencia de 6 meses).
+    @Column(name = "password_updated_at")
+    private LocalDateTime passwordUpdatedAt;
+
+    // RF-01: fuerza el cambio de contraseña en el próximo login (expiración o alta inicial).
+    @Column(name = "must_change_password", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean mustChangePassword = false;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + rol));
@@ -60,9 +88,15 @@ public class Usuario implements UserDetails {
         return true;
     }
 
+    // Spring Security revisa esto ANTES de validar la contraseña: una cuenta bloqueada
+    // no entra ni con la contraseña correcta.
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return !bloqueado && !bloqueoTemporalVigente();
+    }
+
+    public boolean bloqueoTemporalVigente() {
+        return bloqueadoHasta != null && LocalDateTime.now().isBefore(bloqueadoHasta);
     }
 
     @Override

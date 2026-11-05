@@ -22,6 +22,9 @@
     @if (avisoInactividad) {
       <div class="alert-info">Tu sesión se cerró por inactividad. Vuelve a ingresar.</div>
     }
+    @if (avisoCambioOk) {
+      <div class="alert-info">Tu contraseña se actualizó. Ingresa con la nueva.</div>
+    }
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate autocomplete="off">
       <div class="field">
@@ -50,5 +53,18 @@
         {{ isLoading ? 'Ingresando…' : 'Ingresar' }}
       </button>
     </form>
+
+    <button type="button" class="btn btn-secondary login-btn face-toggle" (click)="toggleFace()" [disabled]="isLoading">
+      {{ showFace ? 'Cancelar reconocimiento facial' : 'Ingresar con rostro' }}
+    </button>
+    @if (showFace) {
+      <app-face-capture buttonLabel="Reconocer rostro" [busy]="isLoading" (captured)="onFaceCaptured($event)" />
+    }
+
+    @if (mostrarRecuperar) {
+      <p style="text-align:center;margin-top:12px">
+        <a routerLink="/cambiar-password">¿Olvidó su contraseña? Restablézcala aquí.</a>
+      </p>
+    }
   </div>
 </div>

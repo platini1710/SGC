@@ -28,6 +28,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "Credenciales inválidas"));
     }
 
+    @ExceptionHandler(DemasiadosIntentosException.class)
+    public ResponseEntity<Map<String, String>> handleDemasiadosIntentos(DemasiadosIntentosException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
     @ExceptionHandler(ConflictoHorarioException.class)
     public ResponseEntity<ConflictoResponse> handleConflictoHorario(ConflictoHorarioException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getConflicto());

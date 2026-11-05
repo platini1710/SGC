@@ -1,0 +1,12 @@
+<div class="face-capture">
+  <video #video muted playsinline aria-label="Vista previa de la cámara"></video>
+  @if (status) {
+    <p class="face-status" role="status" aria-live="polite">{{ status }}</p>
+  }
+  @if (error) {
+    <div class="alert alert-error" role="alert">{{ error }}</div>
+  }
+  <button type="button" class="btn btn-primary" (click)="capture()" [disabled]="!ready || capturing || busy">
+    {{ capturing || busy ? 'Procesando...' : buttonLabel }}
+  </button>
+</div>

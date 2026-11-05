@@ -108,7 +108,8 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/face-login",
+                        "/auth/pwd/code", "/auth/pwd/reset").permitAll()
                 .requestMatchers("/api/colegio", "/api/colegio/**").permitAll()
                 .requestMatchers(HttpMethod.GET,
                         "/api/cursos", "/api/cursos/**",
